@@ -1,0 +1,17 @@
+name: kfolden-ood
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.6
+  - pip=20.2.2
+  - cudatoolkit=10.1
+  - pytorch=1.6.0
+  - torchvision=0.7.0
+  - faiss-gpu=1.6.3
+  - pip:
+    - tensorboard
+    - tqdm
+    - transformers==3.0.2
+    - ujson
+    - pandas
