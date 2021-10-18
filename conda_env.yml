@@ -8,10 +8,9 @@ dependencies:
   - cudatoolkit=10.1
   - pytorch=1.6.0
   - torchvision=0.7.0
-  - faiss-gpu=1.6.3
   - pip:
     - tensorboard
     - tqdm
     - transformers==3.0.2
-    - ujson
     - pandas
+    - nltk

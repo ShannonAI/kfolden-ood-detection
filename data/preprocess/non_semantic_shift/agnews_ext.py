@@ -99,7 +99,6 @@ def split_id_ood_distribution_strategy(agnews_train_dict, agnews_dev_dict, agnew
     for agnews_data_key, agnews_data_value in agnews_train_dict.items():
         tmp_agcorpus_data_obj_lst = agcorpus_data_dict[agnews_data_key]
 
-
     train_in_dist_dict, dev_in_dist_dict, test_in_dist_dict, dev_out_of_dist_dict, test_out_of_dist_dict = {}, {}, {}, {}, {}
 
     return train_in_dist_dict, dev_in_dist_dict, test_in_dist_dict, dev_out_of_dist_dict, test_out_of_dist_dict

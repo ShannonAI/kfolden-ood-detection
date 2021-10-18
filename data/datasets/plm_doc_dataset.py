@@ -1,40 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# file: plm_doc_dataset.py
+# file: datasets/plm_doc_dataset.py
 
 import torch
-from transformers import BertTokenizer
-from torch.utils.data import TensorDataset
+from typing import Dict
 from torch.utils.data.dataset import Dataset
-from typing import Dict, Optional, List, Union
-from data.datasets.text_fields import non_semantic_shift_fields, semantic_shift_fields
-
+from data.datasets.label_fields import get_labels
+from data.datasets.plm_doc_processor import PLMDocProcessor, convert_examples_to_features
 
 
 class PLMDocDataset(Dataset):
-    def __init__(self, args, tokenizer: BertTokenizer, distribution_type="id", mode="train"):
+    def __init__(self, args, tokenizer, distribution_type="id", mode="train", leave_out_label_lst=[]):
 
         self.args = args
-        self.tokenizer = tokenizer
         self.mode = mode
         self.distribution_type = distribution_type
+        self.data_sign = args.data_sign
         self.processor = PLMDocProcessor(self.args.data_dir)
         self.max_seq_length = self.args.max_seq_length
+        self.leave_out_label_lst = leave_out_label_lst
 
         if self.mode == "dev":
-            self.examples = self.processor.get_dev_examples()
+            self.examples = self.processor.get_dev_examples(dist_sign=distribution_type)
         elif self.mode == "test":
-            self.examples = self.processor.get_test_examples()
+            self.examples = self.processor.get_test_examples(dist_sign=distribution_type)
         else:
-            self.examples = self.processor.get_train_examples()
+            self.examples = self.processor.get_train_examples(dist_sign=distribution_type)
 
-        self.features, self.dataset = mrpc_convert_examples_to_features(
-            examples=self.examples,
-            tokenizer=tokenizer,
-            max_length=self.max_seq_length,
-            label_list=MRPCProcessor.get_labels(),
-            is_training= mode == "train",)
+        self.features, self.dataset = convert_examples_to_features(self.data_sign, self.examples, tokenizer,
+                                                                   self.max_seq_length, get_labels(args.data_sign), leave_out_label_lst)
 
     def __len__(self):
         return len(self.features)
@@ -54,5 +49,4 @@ class PLMDocDataset(Dataset):
             "attention_mask": attention_mask,
             "label": label
         }
-
         return inputs
