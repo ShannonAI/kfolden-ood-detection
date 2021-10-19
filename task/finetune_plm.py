@@ -14,22 +14,24 @@ from utils.get_parser import get_plm_parser
 
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.nn.modules import CrossEntropyLoss
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 
-from transformers import AdamW, AutoTokenizer, BertTokenizer, get_linear_schedule_with_warmup
+from transformers import AdamW, AutoTokenizer, get_linear_schedule_with_warmup
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
+from data.datasets.label_fields import get_labels
 from data.datasets.plm_doc_dataset import PLMDocDataset
+from data.datasets.collate_functions import collate_plm_to_max_length
 from models.plm import BertForSequenceClassification
 from models.model_config import BertForSequenceClassificationConfig
 
 
 class FinetunePLMTask(pl.LightningModule):
-    def __init__(self, args: argparse.Namespace):
+    def __init__(self, args: argparse.Namespace, keep_label_lst=[], save_output_dir=""):
         """initialize a model, tokenizer and config."""
         super().__init__()
         if isinstance(args, argparse.Namespace):
@@ -37,40 +39,37 @@ class FinetunePLMTask(pl.LightningModule):
             self.save_hyperparameters(args)
             self.args = args
         else:
-            # eval mode
             TmpArgs = namedtuple("tmp_args", field_names=list(args.keys()))
             self.args = args = TmpArgs(**args)
 
+        self.keep_label_lst = keep_label_lst
+        self.num_classes = len(keep_label_lst)
+        self.save_output_dir = save_output_dir
+        self.loss_name = self.args.loss_name
         self.model_path = args.bert_config_dir
         self.data_dir = args.data_dir
         self.loss_type = args.loss_type
         self.optimizer = args.optimizer
-        self.debug = args.debug
         self.train_batch_size = self.args.train_batch_size
         self.eval_batch_size = self.args.eval_batch_size
 
-        bert_config = BertForSequenceClassificationConfig.from_pretrained(self.model_path,
-                                                                          num_labels=self.num_classes,
+        bert_config = BertForSequenceClassificationConfig.from_pretrained(self.model_path, num_labels=self.num_classes,
                                                                           hidden_dropout_prob=self.args.bert_hidden_dropout,)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, use_fast=False, do_lower_case=self.args.do_lower_case)
         self.model = BertForSequenceClassification.from_pretrained(self.model_path, config=bert_config)
 
         format = '%(asctime)s - %(name)s - %(message)s'
-        logging.basicConfig(format=format, filename=os.path.join(self.args.output_dir, "eval_result_log.txt"),
-                            level=logging.INFO)
+        logging.basicConfig(format=format, filename=os.path.join(self.save_output_dir, "eval_result_log.txt"), level=logging.INFO)
         self.result_logger = logging.getLogger(__name__)
         self.result_logger.setLevel(logging.INFO)
         self.result_logger.info(str(args.__dict__ if isinstance(args, argparse.ArgumentParser) else args))
-
-        self.metric_accuracy = pl.metrics.Accuracy(num_classes=len(QQPProcessor.get_labels()))
+        self.metric_accuracy = pl.metrics.Accuracy(num_classes=self.num_classes)
         self.num_gpus = 1
 
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        # config of data
-        parser.add_argument("--task_name", type=str, default="mrpc", choices=["mrpc", "qqp"],
-                            help="The name of the task")
+        parser.add_argument("--loss_name", type=str, default="ce", choices=["ce", "leave_out_ce", "kfolden"])
         parser.add_argument("--max_seq_length", type=int, default=128,
                             help="The maximum total input sequence length after tokenization. Sequence longer than this will be truncated, sequences shorter will be padded.")
         parser.add_argument("--pad_to_max_length", action="store_false",
@@ -124,92 +123,68 @@ class FinetunePLMTask(pl.LightningModule):
     def forward(self, input_ids, token_type_ids=None, attention_mask=None):
         return self.model(input_ids, token_type_ids, attention_mask)
 
-    def compute_loss(self, logits, labels):
-        if self.loss_type == "ce":
-            loss_fct = CrossEntropyLoss()
-            loss = loss_fct(logits.view(-1, 2), labels.view(-1))
-        else:
-            raise ValueError
-        return loss
+    def compute_loss(self, logits, labels, id_label_mask):
+        if self.loss_name == "ce":
+            ce_loss_fct = CrossEntropyLoss(reduction="none")
+            data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
+            avg_loss = torch.sum(data_loss * id_label_mask) / torch.sum(id_label_mask.float())
+        elif self.loss_name == "kfolden":
+            ce_loss_fct = CrossEntropyLoss(reduction="none")
+            ce_data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
+            ce_avg_loss = torch.sum(ce_data_loss * id_label_mask) / torch.sum(id_label_mask.float())
+            ood_label_mask = torch.tensor(id_label_mask==0, dtype=torch.long)
+            ood_target = labels
+            kl_loss = F.kl_div(logits, ood_target, reduction='none', log_target=False)
+            kl_avg_loss = torch.sum(kl_loss) / torch.sum(ood_label_mask)
+            avg_loss = (1 - self.args.lambda_loss) * ce_avg_loss + self.args.lambda_loss * kl_avg_loss
+        return avg_loss
 
     def training_step(self, batch, batch_idx):
         tf_board_logs = {"lr": self.trainer.optimizers[0].param_groups[0]['lr']}
 
-        input_ids, token_type_ids, attention_mask, labels = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"]
-        output_logits = self(input_ids, token_type_ids, attention_mask)
-        loss = self.compute_loss(output_logits, labels)
-
+        input_ids, token_type_ids, attention_mask, gold_labels, id_label_mask = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"], batch["id_label_mask"]
+        output_logits = self.model(input_ids, token_type_ids, attention_mask)
+        loss = self.compute_loss(output_logits, gold_labels, id_label_mask)
         tf_board_logs[f"loss"] = loss
         return {"loss": loss, "log": tf_board_logs}
 
     def validation_step(self, batch, batch_idx):
         output = {}
-
-        input_ids, token_type_ids, attention_mask, gold_labels = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"]
-        output_logits = self(input_ids, token_type_ids, attention_mask)
-        loss = self.compute_loss(output_logits, gold_labels)
+        input_ids, token_type_ids, attention_mask, gold_labels, id_label_mask = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"], batch["id_label_mask"]
+        output_logits = self.model(input_ids, token_type_ids, attention_mask)
+        loss = self.compute_loss(output_logits, gold_labels, id_label_mask)
         pred_labels = self._transform_logits_to_labels(output_logits)
-        stats_confusion_matrix = self.metric_f1.forward(pred_labels, gold_labels)
         batch_acc = self.metric_accuracy.forward(pred_labels, gold_labels)
 
         output[f"val_loss"] = loss
         output[f"val_acc"] = batch_acc
-        output[f"stats_confusion_matrix"] = stats_confusion_matrix
         return output
 
     def validation_epoch_end(self, outputs, prefix="dev"):
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
         avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean() / self.num_gpus
         tensorboard_logs = {"val_loss": avg_loss}
-
-        confusion_matrix = torch.sum(torch.stack([x[f"stats_confusion_matrix"] for x in outputs], dim=0), 0,
-                                     keepdim=False)
-        precision, recall, f1 = self.metric_f1.compute_f1(confusion_matrix)
-
-        tensorboard_logs[f"precision"] = precision
-        tensorboard_logs[f"recall"] = recall
-        tensorboard_logs[f"f1"] = f1
         tensorboard_logs[f"acc"] = avg_acc
         self.result_logger.info(f"EVAL INFO -> current_epoch is: {self.trainer.current_epoch}, current_global_step is: {self.trainer.global_step} ")
-        self.result_logger.info(f"EVAL INFO -> valid_f1 is: {f1}; precision: {precision}, recall: {recall}; val_acc is: {avg_acc}")
-
-        return {"val_loss": avg_loss, "val_log": tensorboard_logs, "val_f1": f1, "val_acc": avg_acc}
+        return {"val_loss": avg_loss, "val_log": tensorboard_logs, "val_acc": avg_acc}
 
     def test_step(self, batch, batch_idx):
         output = {}
-
-        input_ids, token_type_ids, attention_mask, gold_labels = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"]
-        output_logits = self(input_ids, token_type_ids, attention_mask)
+        input_ids, token_type_ids, attention_mask, gold_labels, id_label_mask = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"], batch["id_label_mask"]
+        output_logits = self.model(input_ids, token_type_ids, attention_mask)
         pred_labels = self._transform_logits_to_labels(output_logits)
-
-        stats_confusion_matrix = self.metric_f1.forward(pred_labels, gold_labels)
         batch_acc = self.metric_accuracy.forward(pred_labels, gold_labels)
-
-        output[f"stats_confusion_matrix"] = stats_confusion_matrix
         output[f"test_acc"] = batch_acc
         return output
 
     def test_epoch_end(self, outputs, prefix="test"):
         tensorboard_logs = {}
         avg_acc = torch.stack([x["test_acc"] for x in outputs]).mean() / self.num_gpus
-
-        confusion_matrix = torch.sum(torch.stack([x[f"stats_confusion_matrix"] for x in outputs], dim=0), 0,
-                                     keepdim=False)
-        precision, recall, f1 = self.metric_f1.compute_f1(confusion_matrix)
-
-        tensorboard_logs[f"test_precision"] = precision
-        tensorboard_logs[f"test_recall"] = recall
-        tensorboard_logs[f"test_f1"] = f1
         tensorboard_logs[f"test_acc"] = avg_acc
-
-        self.result_logger.info(f"TEST INFO -> test_f1 is: {f1} precision: {precision}, recall: {recall}; test_acc is: {avg_acc}")
-
-        return {"test_log": tensorboard_logs, "test_f1": f1, "test_acc": avg_acc}
+        self.result_logger.info(f"TEST INFO -> test_acc is: {avg_acc}")
+        return {"test_log": tensorboard_logs, "test_acc": avg_acc}
 
     def train_dataloader(self, ):
-        if self.debug:
-            return self.get_dataloader(prefix="train", limit=12)
-
         return self.get_dataloader(prefix="train")
 
     def val_dataloader(self, ):
@@ -220,12 +195,7 @@ class FinetunePLMTask(pl.LightningModule):
 
     def get_dataloader(self, prefix="train", limit: int = None):
         """read vocab and dataset files"""
-        if self.args.task_name == "mrpc":
-            dataset = MRPCDataset(self.args, self.tokenizer, mode=prefix)
-        elif self.args.task_name == "qqp":
-            dataset = QQPDataset(self.args, self.tokenizer, mode=prefix)
-        else:
-            raise ValueError("task_name should take the value of [mrpc, qqp]")
+        dataset = PLMDocDataset(self.args, self.tokenizer, mode=prefix, keep_label_lst=self.keep_label_lst)
         if prefix == "train":
             # define data_generator will help experiment reproducibility.
             data_generator = torch.Generator()
@@ -236,23 +206,16 @@ class FinetunePLMTask(pl.LightningModule):
             data_sampler = SequentialSampler(dataset)
             batch_size = self.eval_batch_size
 
-        dataloader = DataLoader(dataset=dataset,
-                                sampler=data_sampler,
-                                batch_size=batch_size,
-                                num_workers=self.args.workers,)
-
+        dataloader = DataLoader(dataset=dataset, sampler=data_sampler, batch_size=batch_size,
+                                num_workers=self.args.workers, collate_fn=collate_plm_to_max_length)
         return dataloader
 
     def _transform_logits_to_labels(self, output_logits):
         # output_logits -> [batch_size, num_labels]
-        if self.args.loss_type != "dice":
-            output_probs = F.softmax(output_logits, dim=-1)
-            pred_labels = torch.argmax(output_probs, dim=1)
-        else:
-            output_probs = torch.sigmoid(output_logits)
-            pred_labels = (output_probs > 0.5).view(-1).long()
+        pred_probs = F.softmax(output_logits, dim=-1)
+        pred_labels = torch.argmax(pred_probs, dim=1)
+        return pred_probs, pred_labels
 
-        return pred_labels
 
 def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_log.txt", only_keep_the_best_ckpt: bool = True):
     with open(os.path.join(output_dir, log_file)) as f:
@@ -271,9 +234,8 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
     best_checkpoint_on_dev = ""
     for checkpoint_info_line in checkpoint_info_lines:
         current_f1 = float(
-            re.findall(F1_PATTERN, checkpoint_info_line)[0].replace("val_f1 reached ", "").replace(" (best", ""))
-        current_ckpt = re.findall(CKPT_PATTERN, checkpoint_info_line)[0].replace("saving model to ", "").replace(
-            " as top", "")
+            re.findall(F1_PATTERN, checkpoint_info_line)[0].replace("val_acc reached ", "").replace(" (best", ""))
+        current_ckpt = re.findall(CKPT_PATTERN, checkpoint_info_line)[0].replace("saving model to ", "").replace(" as top", "")
 
         if current_f1 >= best_f1_on_dev:
             if only_keep_the_best_ckpt and len(best_checkpoint_on_dev) != 0:
@@ -283,41 +245,57 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
 
     return best_f1_on_dev, best_checkpoint_on_dev
 
+
+def finetune_model(args, save_output_dir, keep_label_lst=[]):
+    task_model = FinetunePLMTask(args, keep_label_lst=keep_label_lst, save_output_dir=save_output_dir)
+    if len(args.pretrained_checkpoint) > 1:
+        task_model.load_state_dict(torch.load(args.pretrained_checkpoint, map_location=torch.device("cpu"))["state_dict"])
+
+    checkpoint_callback = ModelCheckpoint(
+        filepath=save_output_dir,
+        save_top_k=args.max_keep_ckpt,
+        save_last=False,
+        monitor="val_acc",
+        verbose=True,
+        mode='max',
+        period=-1)
+
+    task_trainer = Trainer.from_argparse_args(args, checkpoint_callback=checkpoint_callback, deterministic=True)
+    task_trainer.fit(task_model)
+
+    # after training, use the model checkpoint which achieves the best f1 score on dev set to compute the f1 on test set.
+    best_f1_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(save_output_dir, only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
+    task_model.result_logger.info("=&" * 20)
+    task_model.result_logger.info(f"saved output dir is : {save_output_dir}")
+    task_model.result_logger.info(f"Best F1 on DEV is {best_f1_on_dev}")
+    task_model.result_logger.info(f"Best checkpoint on DEV set is {path_to_best_checkpoint}")
+    task_model.result_logger.info("=&" * 20)
+
+def save_label_to_file(label_lst, label_file):
+    with open(label_file, "w") as f:
+        for label_item in label_lst:
+            f.write(f"{label_item}\n")
+
 def main():
     parser = get_plm_parser()
     parser = FinetunePLMTask.add_model_specific_args(parser)
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
+    full_label_lst = get_labels(args.data_name, dist_sign="id")
 
-    task_model = FinetunePLMTask(args)
-
-    if len(args.pretrained_checkpoint) > 1:
-        task_model.load_state_dict(torch.load(args.pretrained_checkpoint,
-                                              map_location=torch.device("cpu"))["state_dict"])
-
-    checkpoint_callback = ModelCheckpoint(
-        filepath=args.output_dir,
-        save_top_k=args.max_keep_ckpt,
-        save_last=False,
-        monitor="val_f1",
-        verbose=True,
-        mode='max',
-        period=-1)
-
-    task_trainer = Trainer.from_argparse_args(
-        args,
-        checkpoint_callback=checkpoint_callback,
-        deterministic=True
-    )
-
-    task_trainer.fit(task_model)
-
-    # after training, use the model checkpoint which achieves the best f1 score on dev set to compute the f1 on test set.
-    best_f1_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(args.output_dir, only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
-    task_model.result_logger.info("=&" * 20)
-    task_model.result_logger.info(f"Best F1 on DEV is {best_f1_on_dev}")
-    task_model.result_logger.info(f"Best checkpoint on DEV set is {path_to_best_checkpoint}")
-    task_model.result_logger.info("=&" * 20)
+    if args.enable_leave_label_out:
+        save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
+        for idx in range(0, len(full_label_lst), args.num_of_left_label):
+            left_label_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx in range(idx, idx+args.num_of_left_label)]
+            keep_lable_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx not in range(idx, idx+args.num_of_left_label)]
+            sub_output_dir = os.path.join(args.output_dir, f"{idx}")
+            os.makedirs(sub_output_dir, mode=777, exist_ok=True)
+            save_label_to_file(keep_lable_lst, os.path.join(sub_output_dir, "keep_labels.txt"))
+            save_label_to_file(left_label_lst, os.path.join(sub_output_dir, "left_labels.txt"))
+            finetune_model(args, sub_output_dir, keep_label_lst=keep_lable_lst)
+    else:
+        save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
+        finetune_model(args, args.output_dir, keep_label_lst=full_label_lst)
 
 
 if __name__ == "__main__":

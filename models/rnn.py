@@ -3,13 +3,11 @@
 
 # file: models/rnn.py
 
-
 import torch
 import numpy as np
 from torch import nn
 from models.model_config import RNNTextClassificationConfig
 from models.classifier import MultiLayerPerceptronClassifier
-
 
 class RNNForTextClassification(nn.Module):
     def __init__(self, config: RNNTextClassificationConfig):

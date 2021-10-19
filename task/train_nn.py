@@ -26,17 +26,18 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 
 from transformers import AdamW, AutoTokenizer, BertTokenizer, get_linear_schedule_with_warmup, get_polynomial_decay_schedule_with_warmup
 
-from datasets.twenty_newsgroups import TwentyNewsDataset
-from datasets.collate_functions import collate_20newsgroups_to_max_length
+from data.datasets.label_fields import get_labels
+from data.datasets.nn_doc_dataset import NNDocDataset
+from data.datasets.collate_functions import collate_nn_to_max_length
 from utils.get_parser import get_parser, add_cnn_configurations, add_rnn_configurations, add_basic_configurations
 from models.rnn import RNNForTextClassification
 from models.cnn import CNNForTextClassification
 from models.model_config import RNNTextClassificationConfig, CNNTextClassificationConfig
 
 
-class TextClassificationTask(pl.LightningModule):
+class TrainNNTask(pl.LightningModule):
     """Model Trainer for GLUE tasks."""
-    def __init__(self, args: argparse.Namespace):
+    def __init__(self, args: argparse.Namespace, keep_label_lst=[], save_output_dir=""):
         """initialize a model, tokenizer and config."""
         super().__init__()
         if isinstance(args, argparse.Namespace):
@@ -47,12 +48,15 @@ class TextClassificationTask(pl.LightningModule):
             TmpArgs = namedtuple("tmp_args", field_names=list(args.keys()))
             self.args = args = TmpArgs(**args)
 
+        self.keep_label_lst = keep_label_lst
+        self.num_classes = len(keep_label_lst)
+        self.save_output_dir = save_output_dir
+        self.loss_name = self.args.loss_name
+
         self.data_dir = args.data_dir
         self.optimizer = args.optimizer
         self.train_batch_size = self.args.train_batch_size
         self.eval_batch_size = self.args.eval_batch_size
-        self.num_classes = self.args.num_labels
-        self.tokenizer = None if self.args.model_type.lower() != "bert" else AutoTokenizer.from_pretrained(self.args.bert_config_dir, use_fast=False, do_lower_case=self.args.do_lower_case)
 
         if args.model_type == "cnn":
             config = CNNTextClassificationConfig(vocab_size=args.vocab_size, embedding_size=args.embedding_size,
@@ -75,7 +79,7 @@ class TextClassificationTask(pl.LightningModule):
         else:
             raise ValueError("the input model_type does not exist.")
 
-        output_logging_file = os.path.join(self.args.output_dir, self.args.log_file)
+        output_logging_file = os.path.join(self.save_output_dir, self.args.log_file)
         self.result_logger = open(output_logging_file, "a")
         self.gpus = args.gpus.split(",") if "," in str(args.gpus) else args.gpus
         self.metric_accuracy = pl.metrics.Accuracy(ddp_sync_on_step=True)
@@ -145,35 +149,40 @@ class TextClassificationTask(pl.LightningModule):
 
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
-    def forward(self, input_ids, token_type_ids=None, attention_mask=None):
-        if self.args.model_type.lower() == "bert":
-            return self.model(input_ids, token_type_ids, attention_mask)
-        else:
-            return self.model(input_ids)
+    def forward(self, input_ids,):
+        return self.model(input_ids)
 
-    def compute_loss(self, logits, labels):
-        loss_fct = CrossEntropyLoss()
-        loss = loss_fct(logits.view(-1, self.num_classes), labels.view(-1))
-        return loss
+    def compute_loss(self, logits, labels, id_label_mask):
+        if self.loss_name == "ce":
+            ce_loss_fct = CrossEntropyLoss(reduction="none")
+            data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
+            avg_loss = torch.sum(data_loss * id_label_mask) / torch.sum(id_label_mask.float())
+        elif self.loss_name == "kfolden":
+            ce_loss_fct = CrossEntropyLoss(reduction="none")
+            ce_data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
+            ce_avg_loss = torch.sum(ce_data_loss * id_label_mask) / torch.sum(id_label_mask.float())
+            ood_label_mask = torch.tensor(id_label_mask==0, dtype=torch.long)
+            ood_target = labels
+            kl_loss = F.kl_div(logits, ood_target, reduction='none', log_target=False)
+            kl_avg_loss = torch.sum(kl_loss) / torch.sum(ood_label_mask)
+            avg_loss = (1 - self.args.lambda_loss) * ce_avg_loss + self.args.lambda_loss * kl_avg_loss
+        return avg_loss
 
     def training_step(self, batch, batch_idx):
         tf_board_logs = {"lr": self.trainer.optimizers[0].param_groups[0]['lr']}
-
-        input_ids, gold_labels = batch[0], batch[1]
+        input_ids, token_mask, id_label_mask, gold_labels = batch[0], batch[1], batch[2], batch[3]
         output_logits = self.model(input_ids)
-        loss = self.compute_loss(output_logits, gold_labels)
-
+        loss = self.compute_loss(output_logits, gold_labels, id_label_mask)
         tf_board_logs[f"loss"] = loss
         return {"loss": loss, "log": tf_board_logs}
 
     def validation_step(self, batch, batch_idx):
         output = {}
-        input_ids, gold_labels = batch[0], batch[1]
+        input_ids, token_mask, id_label_mask, gold_labels = batch[0], batch[1], batch[2], batch[3]
         output_logits = self.model(input_ids)
-        loss = self.compute_loss(output_logits, gold_labels)
+        loss = self.compute_loss(output_logits, gold_labels, id_label_mask)
         pred_labels = _transform_logits_to_labels(output_logits)
         self.metric_accuracy.update(pred_labels, gold_labels)
-
         output[f"val_loss"] = loss
         return output
 
@@ -185,26 +194,21 @@ class TextClassificationTask(pl.LightningModule):
 
         self.result_logger.write(f"EVAL INFO -> current_epoch is: {self.trainer.current_epoch}, current_global_step is: {self.trainer.global_step} \n")
         print(f"EVAL INFO -> current_epoch is: {self.trainer.current_epoch}, val_acc is: {avg_acc} \n")
-
         return {"val_loss": avg_loss, "val_log": tensorboard_logs, "val_acc": avg_acc}
 
     def test_step(self, batch, batch_idx):
         output = {}
-        input_ids, gold_labels = batch[0], batch[1]
+        input_ids, token_mask, id_label_mask, gold_labels = batch[0], batch[1], batch[2], batch[3]
         output_logits = self.model(input_ids)
         pred_labels = _transform_logits_to_labels(output_logits)
-        batch_acc = self.metric_accuracy.forward(pred_labels, gold_labels)
-
+        batch_acc = self.metric_accuracy.forward(pred_labels, gold_labels,)
         output[f"test_acc"] = batch_acc
         return output
 
     def test_epoch_end(self, outputs, prefix="test"):
         tensorboard_logs = {}
         avg_acc = torch.stack([x["test_acc"] for x in outputs]).mean() / self.num_gpus
-
-        confusion_matrix = torch.sum(torch.stack([x[f"stats_confusion_matrix"] for x in outputs], dim=0), 0, keepdim=False)
         tensorboard_logs[f"test_acc"] = avg_acc
-
         self.result_logger.write(f"TEST INFO -> test_acc is: {avg_acc} \n")
 
         return {"test_log": tensorboard_logs, "test_acc": avg_acc}
@@ -220,11 +224,9 @@ class TextClassificationTask(pl.LightningModule):
 
     def get_dataloader(self, prefix="train", ):
         """read vocab and dataset files"""
-        dataset = TwentyNewsDataset(self.args.data_dir, prefix, max_length=self.args.max_length,
-                                    tokenizer=self.tokenizer, allow_ood=False,
-                                    vocab_file=self.args.vocab_file,
-                                    remove=["headers", "footers", "quotes"],
-                                    label_files=self.args.label_file, do_lower_case=self.args.do_lower_case)
+        dataset = NNDocDataset(self.args, prefix, max_seq_length=self.args.max_length,
+                               keep_label_lst=self.keep_label_lst, vocab_file=self.args.vocab_file,
+                               do_lower_case=self.args.do_lower_case)
 
         if prefix == "train":
             data_generator = torch.Generator()
@@ -239,13 +241,12 @@ class TextClassificationTask(pl.LightningModule):
                                 sampler=data_sampler,
                                 batch_size=batch_size,
                                 num_workers=self.args.workers,
-                                collate_fn=collate_20newsgroups_to_max_length)
+                                collate_fn=collate_nn_to_max_length)
 
         return dataloader
 
 
 def _transform_logits_to_labels(output_logits):
-    # output_logits -> [batch_size, num_labels]
     output_probs = F.softmax(output_logits, dim=-1)
     pred_labels = torch.argmax(output_probs, dim=1)
 
@@ -256,7 +257,7 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
     with open(os.path.join(output_dir, log_file)) as f:
         log_lines = f.readlines()
 
-    F1_PATTERN = re.compile(r"val_f1 reached \d+\.\d* \(best")
+    F1_PATTERN = re.compile(r"val_acc reached \d+\.\d* \(best")
     # val_f1 reached 0.00000 (best 0.00000)
     CKPT_PATTERN = re.compile(r"saving model to \S+ as top")
     checkpoint_info_lines = []
@@ -269,7 +270,7 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
     best_checkpoint_on_dev = ""
     for checkpoint_info_line in checkpoint_info_lines:
         current_f1 = float(
-            re.findall(F1_PATTERN, checkpoint_info_line)[0].replace("val_f1 reached ", "").replace(" (best", ""))
+            re.findall(F1_PATTERN, checkpoint_info_line)[0].replace("val_acc reached ", "").replace(" (best", ""))
         current_ckpt = re.findall(CKPT_PATTERN, checkpoint_info_line)[0].replace("saving model to ", "").replace(
             " as top", "")
 
@@ -282,31 +283,57 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
     return best_f1_on_dev, best_checkpoint_on_dev
 
 
-def main():
-    parser = get_parser()
-    parser = TextClassificationTask.add_model_specific_args(parser)
-    parser = Trainer.add_argparse_args(parser)
-    args = parser.parse_args()
-
-    text_classification_task = TextClassificationTask(args)
-
+def train_model(args, save_output_dir, keep_label_lst=[]):
+    task_model = TrainNNTask(args, keep_label_lst=keep_label_lst, save_output_dir=save_output_dir)
     if len(args.pretrained_checkpoint) > 1:
-        text_classification_task.load_state_dict(torch.load(args.pretrained_checkpoint, map_location=torch.device("cpu"))["state_dict"])
+        task_model.load_state_dict(torch.load(args.pretrained_checkpoint, map_location=torch.device("cpu"))["state_dict"])
 
-    checkpoint_callback = ModelCheckpoint(filepath=args.output_dir, save_top_k=args.max_keep_ckpt, save_last=False, monitor="val_acc", verbose=True, mode='max', period=-1)
+    checkpoint_callback = ModelCheckpoint(
+        filepath=save_output_dir,
+        save_top_k=args.max_keep_ckpt,
+        save_last=False,
+        monitor="val_acc",
+        verbose=True,
+        mode='max',
+        period=-1)
 
-    task_trainer = Trainer.from_argparse_args(args, checkpoint_callback=checkpoint_callback, deterministic=True, auto_select_gpus=True,)
-
-    task_trainer.fit(text_classification_task)
+    task_trainer = Trainer.from_argparse_args(args, checkpoint_callback=checkpoint_callback, deterministic=True)
+    task_trainer.fit(task_model)
 
     # after training, use the model checkpoint which achieves the best f1 score on dev set to compute the f1 on test set.
-    best_f1_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(args.output_dir,
-                                                                          log_file=args.log_file,
-                                                                          only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
-    text_classification_task.result_logger.write(f"{'=&' * 20} \n")
-    text_classification_task.result_logger.write(f"Best F1 on DEV is {best_f1_on_dev} \n")
-    text_classification_task.result_logger.write(f"Best checkpoint on DEV set is {path_to_best_checkpoint} \n")
-    text_classification_task.result_logger.write(f"{'=&' * 20} \n")
+    best_f1_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(save_output_dir, only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
+    task_model.result_logger.info("=&" * 20)
+    task_model.result_logger.info(f"saved output dir is : {save_output_dir}")
+    task_model.result_logger.info(f"Best F1 on DEV is {best_f1_on_dev}")
+    task_model.result_logger.info(f"Best checkpoint on DEV set is {path_to_best_checkpoint}")
+    task_model.result_logger.info("=&" * 20)
+
+def save_label_to_file(label_lst, label_file):
+    with open(label_file, "w") as f:
+        for label_item in label_lst:
+            f.write(f"{label_item}\n")
+
+def main():
+    parser = get_parser()
+    parser = TrainNNTask.add_model_specific_args(parser)
+    parser = Trainer.add_argparse_args(parser)
+    args = parser.parse_args()
+    full_label_lst = get_labels(args.data_name, dist_sign="id")
+
+    if args.enable_leave_label_out:
+        save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
+        for idx in range(0, len(full_label_lst), args.num_of_left_label):
+            left_label_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx in range(idx, idx+args.num_of_left_label)]
+            keep_lable_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx not in range(idx, idx+args.num_of_left_label)]
+            sub_output_dir = os.path.join(args.output_dir, f"{idx}")
+            os.makedirs(sub_output_dir, mode=777, exist_ok=True)
+            save_label_to_file(keep_lable_lst, os.path.join(sub_output_dir, "keep_labels.txt"))
+            save_label_to_file(left_label_lst, os.path.join(sub_output_dir, "left_labels.txt"))
+            train_model(args, sub_output_dir, keep_label_lst=keep_lable_lst)
+    else:
+        os.makedirs(args.output_dir, mode=777, exist_ok=True)
+        save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
+        train_model(args, args.output_dir, keep_label_lst=full_label_lst)
 
 
 if __name__ == "__main__":

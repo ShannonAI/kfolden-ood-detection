@@ -17,9 +17,12 @@ def get_plm_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pretrained_checkpoint", default="", type=str, help="pretrained checkpoint path")
     parser.add_argument("--train_batch_size", type=int, default=32, help="batch size for train dataloader")
     parser.add_argument("--eval_batch_size", type=int, default=1, help="batch size for eval dataloader")
+    parser.add_argument("--lambda_loss", type=float, default=0.5, )
     parser.add_argument("--lr", type=float, default=2e-5, help="learning rate")
     parser.add_argument("--lr_scheduler", type=str, default="onecycle", help="type of lr scheduler")
     parser.add_argument("--workers", type=int, default=0, help="num workers for dataloader")
+    parser.add_argument("--enable_leave_label_out", action="store_true", help="leave label out")
+    parser.add_argument("--num_of_left_label", default=0, type=int, help="number of labels as ood data distribution")
     # number of data-loader workers should equal to 0.
     # https://blog.csdn.net/breeze210/article/details/99679048
     parser.add_argument("--do_lower_case", action="store_true", help="Set this flag if you are using an uncased model.")
@@ -32,14 +35,7 @@ def get_plm_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max_keep_ckpt", default=3, type=int,
                         help="the number of keeping ckpt max.")
     parser.add_argument("--output_dir", default="/data", type=str, help="the directory to save model outputs")
-    parser.add_argument("--debug", action="store_true", help="train with 10 data examples in the debug mode.")
-
-    parser.add_argument("--overwrite_cache", action="store_true", help="Overwrite the cached training and evaluation sets")
-    parser.add_argument("--cache_dir", default="", type=str, help="Where do you want to store the pre-trained models downloaded from s3", )
-
-    # only keep the best checkpoint after training.
     parser.add_argument("--only_keep_the_best_ckpt_after_training", action="store_true", help="only the best model checkpoint after training. ")
-
     return parser
 
 def get_parser() -> argparse.ArgumentParser:
@@ -74,8 +70,6 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--log_file", default="train_log.txt", type=str, )
     parser.add_argument("--overwrite_cache", action="store_true", help="Overwrite the cached training and evaluation sets")
     parser.add_argument("--cache_dir", default="", type=str, help="Where do you want to store the pre-trained models downloaded from s3", )
-
-    parser.add_argument("--num_labels", type=int, default=10)
     parser.add_argument("--final_div_factor", type=float, default=1e4, help="final div factor of linear decay scheduler")
     # only keep the best checkpoint after training.
     parser.add_argument("--only_keep_the_best_ckpt_after_training", action="store_true", help="only the best model checkpoint after training. ")

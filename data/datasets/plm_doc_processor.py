@@ -8,20 +8,14 @@ import csv
 import torch
 from collections import namedtuple
 from torch.utils.data import TensorDataset
-from data.datasets.text_fields import non_semantic_shift_fields, semantic_shift_fields
 
 DocDataFeature = namedtuple("DocDataFeature", ["input_ids", "attention_mask", "token_type_ids", "label"])
 
 
 class PLMDocProcessor:
-    def __init__(self, data_dir, is_semantic_shift=True, dataset_name="agnews_ext"):
+    def __init__(self, data_dir, dataset_name="agnews_ext"):
         self.data_dir = data_dir
-        if is_semantic_shift:
-            self.data_object = semantic_shift_fields[dataset_name]
-            self.text_fields = list(semantic_shift_fields[dataset_name]._fields)
-        else:
-            self.data_object = non_semantic_shift_fields[dataset_name]
-            self.text_fields = list(non_semantic_shift_fields[dataset_name]._fields)
+        self.dataset_name = dataset_name
 
     def get_train_examples(self, dist_sign="id"):
         train_file = os.path.join(self.data_dir, "train", "train.csv")
@@ -43,15 +37,11 @@ class PLMDocProcessor:
             csv_reader = csv.DictReader(csvfile)
             return list(csv_reader)
 
-    def return_text_fields(self, ):
-        return self.text_fields
 
+def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_length, keep_label_lst):
 
-def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_length, label_lst, leave_out_label_lst):
-
-    left_label_lst = list(set(label_lst) - set(leave_out_label_lst))
-    label_map = {label: i for i, label in enumerate(left_label_lst)}
-    labels = [label_map[example["label"]] if example["label"] in left_label_lst else -1 for example in data_example_lst]
+    label_map = {label: i for i, label in enumerate(keep_label_lst)}
+    labels = [label_map[example["label"]] if example["label"] in keep_label_lst else -1 for example in data_example_lst]
 
     if data_sign == "agnews_ext":
         # data_type,topic,title,description
@@ -87,7 +77,6 @@ def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_len
         raise ValueError("ERROR : NOT Existing data signature... ...")
 
     features = []
-
     for i in range(len(data_example_lst)):
         inputs = {k: batch_encoding[k][i] for k in batch_encoding}
 
