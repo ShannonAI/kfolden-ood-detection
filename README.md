@@ -36,7 +36,7 @@ The unzipped dataset directory should have the following structure: <br>
 
 Every dataset directory contains three subdirectories `train/`, `dev/`, and `test/`, each containing the randomly sampled training, development, and testing subsets, respectively. <br>
 For example, the testing set for in-distribution can be found in the `<benchmark-name>/test/id_test.csv` file. 
-And the `<benchmark-name>/test/ood_test.csv` file contains out-of-distribution test data samples. <br>
+And the `<benchmark-name>/test/ood_test.csv` file contains out-of-distribution test data instances. <br>
 More details can be found in the [paper](https://arxiv.org/pdf/2108.12731.pdf) (Section 5 and Appendix). 
 
 
@@ -51,14 +51,25 @@ $ pip3 install -r requirements.txt
 $ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
 ``` 
 
-**Notice**: please check your CUDA version and install compatible pytorch. Please refer to [https://pytorch.org/](https://pytorch.org/) for more details.  
+**Notice**: please check your CUDA version and install compatible pytorch referring to [pytorch.org](https://pytorch.org/).  
 
 
-## Training 
+## Train and Evaluate 
 
+- For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
+Training and evaluation procedure are defined in [./task/train_nn.py](./task/train_nn.py).  <br>
 
-## Evaluation 
+- For pretrained MLM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. 
+Training and evaluation procedure are defined in [./task/finetune_plm.py](./task/finetune_plm.py). 
 
+**Note**: 
+Note that you need to change `DATA_DIR`, `BERT_DIR`, `OUTPUT_DIR` to your own dataset path, bert model path and log path, respectively.  <br> 
+For example, run `./scripts/mrc_ner/reproduce/ace04.sh` will start training MRC-NER models and save intermediate log to `$OUTPUT_DIR/train_log.txt`. <br> 
+During training, the model trainer will automatically evaluate on the dev set every `val_check_interval` epochs,
+and save the topk checkpoints to `$OUTPUT_DIR`. <br> 
+
+After training, you can find the best checkpoint on the dev set according to the evaluation results in `$OUTPUT_DIR/train_log.txt`. <br> 
+Then run `python3 evaluate/mrc_ner_evaluate.py $OUTPUT_DIR/<best_ckpt_on_dev>.ckpt  $OUTPUT_DIR/lightning_logs/<version_0/hparams.yaml>` to evaluate on the test set with the best checkpoint chosen on dev. 
 
 
 ### Contact 
