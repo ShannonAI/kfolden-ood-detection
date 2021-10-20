@@ -15,7 +15,7 @@ If you find this repository helpful, please cite the following:
 }
 ```
 
-## Dataset 
+## Benchmarks 
 
 In this paper, we construct semantic shift and non-semantic shift benchmarks for out-of-distribution detection. <br>
 You can download the benchmarks following this [guidline](./data/README.md). 
