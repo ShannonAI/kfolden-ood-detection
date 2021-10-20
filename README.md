@@ -15,19 +15,6 @@ If you find this repository helpful, please cite the following:
 }
 ```
 
-## Install Requirements
-
-If you are working on a GPU machine with CUDA 10.1, please run the following command to setup environment. <br> 
-
-```bash 
-$ conda create -n kfolden-env python=3.6
-$ conda activate kfolden-env
-$ pip3 install -r requirements.txt 
-$ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
-``` 
-
-**Notice**: please check your CUDA version and install compatible Pytorch. 
-
 ## Dataset 
 
 In this paper, we construct semantic shift and non-semantic shift benchmarks for out-of-distribution detection. <br>
@@ -47,9 +34,30 @@ The unzipped dataset directory should have the following structure: <br>
     └── train.csv
 ```
 
-The main dataset is included in dataset/ under train/, dev/, and test/, each containing the randomly sampled training, development, and testing subsets, respectively. <br>
-For example, the evaluation set for place-of-birth (P19) can be found in the dataset/test/P19.test.json file. <br>
+Every dataset directory contains three subdirectories `train/`, `dev/`, and `test/`, each containing the randomly sampled training, development, and testing subsets, respectively. <br>
+For example, the testing set for in-distribution can be found in the `<benchmark-name>/test/id_test.csv` file. 
+And the `<benchmark-name>/test/ood_test.csv` file contains out-of-distribution test data samples. <br>
 More details can be found in the [paper](https://arxiv.org/pdf/2108.12731.pdf) (Section 5 and Appendix). 
+
+
+## Install Requirements
+
+If you are working on a GPU machine with CUDA 10.1, please run the following command to setup environment. <br> 
+
+```bash 
+$ conda create -n kfolden-env python=3.6
+$ conda activate kfolden-env
+$ pip3 install -r requirements.txt 
+$ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
+``` 
+
+**Notice**: please check your CUDA version and install compatible pytorch. Please refer [https://pytorch.org/](https://pytorch.org/) for more details.  
+
+
+## Training 
+
+
+## Evaluation 
 
 
 
