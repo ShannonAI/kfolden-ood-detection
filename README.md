@@ -1,10 +1,10 @@
 # kfolden-ood-detection
 
-The repository contains the code of the recent research advances in [Shannon.AI](http://www.shannonai.com). 
+The repository contains the code of the recent research advances at [Shannon.AI](http://www.shannonai.com). 
 
 **kFolden: k-Fold Ensemble for Out-Of-Distribution Detection** <br>
 Xiaoya Li, Jiwei Li, Xiaofei Sun, Chun Fan, Tianwei Zhang, Fei Wu, Yuxian Meng and Jun Zhang<br>
-In EMNLP 2021. [paper](https://arxiv.org/pdf/2108.12731)<br>
+EMNLP 2021. [paper](https://arxiv.org/pdf/2108.12731)<br>
 If you find this repo helpful, please cite the following:
 ```tex 
  @article{li2021k,
@@ -14,6 +14,10 @@ If you find this repo helpful, please cite the following:
   year={2021}
 }
 ```
+
+
+
+
 
 
 ### Contact 
