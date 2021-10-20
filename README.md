@@ -62,15 +62,17 @@ Training and evaluation procedure are defined in [./task/train_nn.py](./task/tra
 2. For pretrained MLM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
 Training and evaluation procedure are defined in [./task/finetune_plm.py](./task/finetune_plm.py). <br>
 
-
-**Note**: 
 Note that you need to change `DATA_DIR`, `BERT_DIR`, `OUTPUT_DIR` to your own dataset path, bert model path and log path, respectively.  <br> 
-For example, run `./scripts/mrc_ner/reproduce/ace04.sh` will start training MRC-NER models and save intermediate log to `$OUTPUT_DIR/train_log.txt`. <br> 
+
 During training, the model trainer will automatically evaluate on the dev set every `val_check_interval` epochs,
 and save the topk checkpoints to `$OUTPUT_DIR`. <br> 
-
 After training, you can find the best checkpoint on the dev set according to the evaluation results in `$OUTPUT_DIR/train_log.txt`. <br> 
-Then run `python3 evaluate/mrc_ner_evaluate.py $OUTPUT_DIR/<best_ckpt_on_dev>.ckpt  $OUTPUT_DIR/lightning_logs/<version_0/hparams.yaml>` to evaluate on the test set with the best checkpoint chosen on dev. 
+When treating $K$ labels as out-of-distribution samples, the model trainer saves $k$ under the directory `OUTPUT_DIR`. 
+
+**Note**: <br>
+[1]: `REPO_PATH`: The path to the `kfolden-ood-detection` repository. <br> 
+[2]: `DATA_DIR`: The path to benchmark directory. <br> 
+[3]: `OUTPUT_DIR`: The directory for saving training logs and intermediate checkpoints. <br>
 
 
 ### Contact 
