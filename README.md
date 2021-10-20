@@ -40,7 +40,7 @@ And the `<benchmark-name>/test/ood_test.csv` file contains out-of-distribution t
 More details can be found in the [paper](https://arxiv.org/pdf/2108.12731.pdf) (Section 5 and Appendix). 
 
 
-## Install Requirements
+## Requirements
 
 If you are working on a GPU machine with CUDA 10.1, please run the following command to setup environment. <br> 
 
@@ -51,7 +51,7 @@ $ pip3 install -r requirements.txt
 $ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
 ``` 
 
-**Notice**: please check your CUDA version and install compatible pytorch. Please refer [https://pytorch.org/](https://pytorch.org/) for more details.  
+**Notice**: please check your CUDA version and install compatible pytorch. Please refer to [https://pytorch.org/](https://pytorch.org/) for more details.  
 
 
 ## Training 
