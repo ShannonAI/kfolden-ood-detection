@@ -1,6 +1,6 @@
 # kfolden-ood-detection
 
-The repository contains the code of the recent research advances at [Shannon.AI](http://www.shannonai.com). 
+The repository contains the code for the recent research advances at [Shannon.AI](http://www.shannonai.com). 
 
 **kFolden: k-Fold Ensemble for Out-Of-Distribution Detection** <br>
 Xiaoya Li, Jiwei Li, Xiaofei Sun, Chun Fan, Tianwei Zhang, Fei Wu, Yuxian Meng and Jun Zhang<br>
@@ -26,6 +26,8 @@ $ pip3 install -r requirements.txt
 $ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
 ``` 
 
+**Notice**: please check your CUDA version and install compatible Pytorch. 
+
 ## Dataset 
 
 In this paper, we construct semantic shift and non-semantic shift benchmarks for out-of-distribution detection. <br>
@@ -44,6 +46,10 @@ The unzipped dataset directory should have the following structure: <br>
 └── train
     └── train.csv
 ```
+
+The main dataset is included in dataset/ under train/, dev/, and test/, each containing the randomly sampled training, development, and testing subsets, respectively. <br>
+For example, the evaluation set for place-of-birth (P19) can be found in the dataset/test/P19.test.json file. <br>
+More details can be found in the [paper](https://arxiv.org/pdf/2108.12731.pdf) (Section 5 and Appendix). 
 
 
 
