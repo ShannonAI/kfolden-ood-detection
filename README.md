@@ -56,11 +56,12 @@ $ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f 
 
 ## Train and Evaluate 
 
-- For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
+1. For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
 Training and evaluation procedure are defined in [./task/train_nn.py](./task/train_nn.py).  <br>
 
-- For pretrained MLM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. 
-Training and evaluation procedure are defined in [./task/finetune_plm.py](./task/finetune_plm.py). 
+2. For pretrained MLM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
+Training and evaluation procedure are defined in [./task/finetune_plm.py](./task/finetune_plm.py). <br>
+
 
 **Note**: 
 Note that you need to change `DATA_DIR`, `BERT_DIR`, `OUTPUT_DIR` to your own dataset path, bert model path and log path, respectively.  <br> 
