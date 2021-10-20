@@ -1,0 +1,4 @@
+tensorboard
+tqdm
+pandas
+tokenizers==0.9.3
