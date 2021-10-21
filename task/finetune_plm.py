@@ -48,13 +48,12 @@ class FinetunePLMTask(pl.LightningModule):
         self.loss_name = self.args.loss_name
         self.model_path = args.bert_config_dir
         self.data_dir = args.data_dir
-        self.loss_type = args.loss_type
         self.optimizer = args.optimizer
         self.train_batch_size = self.args.train_batch_size
         self.eval_batch_size = self.args.eval_batch_size
 
         bert_config = BertForSequenceClassificationConfig.from_pretrained(self.model_path, num_labels=self.num_classes,
-                                                                          hidden_dropout_prob=self.args.bert_hidden_dropout,)
+                                                                          hidden_dropout_prob=self.args.hidden_dropout_prob,)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, use_fast=False, do_lower_case=self.args.do_lower_case)
         self.model = BertForSequenceClassification.from_pretrained(self.model_path, config=bert_config)
 
@@ -69,11 +68,9 @@ class FinetunePLMTask(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--loss_name", type=str, default="ce", choices=["ce", "leave_out_ce", "kfolden"])
-        parser.add_argument("--max_seq_length", type=int, default=128,
-                            help="The maximum total input sequence length after tokenization. Sequence longer than this will be truncated, sequences shorter will be padded.")
-        parser.add_argument("--pad_to_max_length", action="store_false",
-                            help="Whether to pad all samples to ' max_seq_length'.")
+        parser.add_argument("--data_name", type=str, default="20news_6s", help=" The name of the task to  train.")
+        parser.add_argument("--loss_name", type=str, default="ce", help=" The name of the task to  train.")
+        parser.add_argument("--pad_to_max_length", action="store_false", help="Whether to pad all samples to ' max_seq_length'.")
         return parser
 
     def configure_optimizers(self,):
@@ -94,7 +91,7 @@ class FinetunePLMTask(pl.LightningModule):
             optimizer = AdamW(optimizer_grouped_parameters,
                               betas=(0.9, 0.999),  # according to RoBERTa paper
                               lr=self.args.lr,
-                              eps=self.args.adam_epsilon, )
+                              eps=self.args.adam_epsilon,)
         else:
             # revisiting few-sample BERT Fine-tuning https://arxiv.org/pdf/2006.05987.pdf
             # https://github.com/asappresearch/revisit-bert-finetuning/blob/master/run_glue.py
@@ -123,17 +120,18 @@ class FinetunePLMTask(pl.LightningModule):
     def forward(self, input_ids, token_type_ids=None, attention_mask=None):
         return self.model(input_ids, token_type_ids, attention_mask)
 
-    def compute_loss(self, logits, labels, id_label_mask):
+    def compute_loss(self, logits, labels, id_label_mask, eps=1e-16):
         if self.loss_name == "ce":
-            ce_loss_fct = CrossEntropyLoss(reduction="none")
-            data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
+            ce_loss_fct = CrossEntropyLoss(reduction="none", ignore_index=-100)
+            data_loss = ce_loss_fct(logits.view(-1, self.num_classes), labels.view(-1))
             avg_loss = torch.sum(data_loss * id_label_mask) / torch.sum(id_label_mask.float())
         elif self.loss_name == "kfolden":
-            ce_loss_fct = CrossEntropyLoss(reduction="none")
-            ce_data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
-            ce_avg_loss = torch.sum(ce_data_loss * id_label_mask) / torch.sum(id_label_mask.float())
+            ce_loss_fct = CrossEntropyLoss(reduction="none", ignore_index=-100)
+            ce_data_loss = ce_loss_fct(logits.view(-1, self.num_classes), labels.view(-1))
+            ce_avg_loss = torch.sum(ce_data_loss * id_label_mask) / (torch.sum(id_label_mask.float()) + eps)
             ood_label_mask = torch.tensor(id_label_mask==0, dtype=torch.long)
-            ood_target = labels
+            ood_single_target = 1 / float(self.num_classes)
+            ood_target = torch.zeros_like(logits).fill_(ood_single_target).to('cuda')
             kl_loss = F.kl_div(logits, ood_target, reduction='none', log_target=False)
             kl_avg_loss = torch.sum(kl_loss) / torch.sum(ood_label_mask)
             avg_loss = (1 - self.args.lambda_loss) * ce_avg_loss + self.args.lambda_loss * kl_avg_loss
@@ -141,8 +139,7 @@ class FinetunePLMTask(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         tf_board_logs = {"lr": self.trainer.optimizers[0].param_groups[0]['lr']}
-
-        input_ids, token_type_ids, attention_mask, gold_labels, id_label_mask = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"], batch["id_label_mask"]
+        input_ids, token_type_ids, attention_mask, id_label_mask, gold_labels = batch[0], batch[1], batch[2], batch[3], batch[4]
         output_logits = self.model(input_ids, token_type_ids, attention_mask)
         loss = self.compute_loss(output_logits, gold_labels, id_label_mask)
         tf_board_logs[f"loss"] = loss
@@ -150,10 +147,10 @@ class FinetunePLMTask(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         output = {}
-        input_ids, token_type_ids, attention_mask, gold_labels, id_label_mask = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"], batch["id_label_mask"]
+        input_ids, token_type_ids, attention_mask, id_label_mask, gold_labels = batch[0], batch[1], batch[2], batch[3], batch[4]
         output_logits = self.model(input_ids, token_type_ids, attention_mask)
         loss = self.compute_loss(output_logits, gold_labels, id_label_mask)
-        pred_labels = self._transform_logits_to_labels(output_logits)
+        pred_label_probs, pred_labels = self._transform_logits_to_labels(output_logits)
         batch_acc = self.metric_accuracy.forward(pred_labels, gold_labels)
 
         output[f"val_loss"] = loss
@@ -170,9 +167,9 @@ class FinetunePLMTask(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         output = {}
-        input_ids, token_type_ids, attention_mask, gold_labels, id_label_mask = batch["input_ids"], batch["token_type_ids"], batch["attention_mask"], batch["label"], batch["id_label_mask"]
+        input_ids, token_type_ids, attention_mask, id_label_mask, gold_labels = batch[0], batch[1], batch[2], batch[3], batch[4]
         output_logits = self.model(input_ids, token_type_ids, attention_mask)
-        pred_labels = self._transform_logits_to_labels(output_logits)
+        pred_label_probs, pred_labels = self._transform_logits_to_labels(output_logits)
         batch_acc = self.metric_accuracy.forward(pred_labels, gold_labels)
         output[f"test_acc"] = batch_acc
         return output
@@ -215,7 +212,6 @@ class FinetunePLMTask(pl.LightningModule):
         pred_probs = F.softmax(output_logits, dim=-1)
         pred_labels = torch.argmax(pred_probs, dim=1)
         return pred_probs, pred_labels
-
 
 def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_log.txt", only_keep_the_best_ckpt: bool = True):
     with open(os.path.join(output_dir, log_file)) as f:
@@ -289,11 +285,14 @@ def main():
             left_label_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx in range(idx, idx+args.num_of_left_label)]
             keep_lable_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx not in range(idx, idx+args.num_of_left_label)]
             sub_output_dir = os.path.join(args.output_dir, f"{idx}")
-            os.makedirs(sub_output_dir, mode=777, exist_ok=True)
+            os.makedirs(sub_output_dir, exist_ok=True)
+            os.system(f"chmod -R 777 {sub_output_dir}")
             save_label_to_file(keep_lable_lst, os.path.join(sub_output_dir, "keep_labels.txt"))
             save_label_to_file(left_label_lst, os.path.join(sub_output_dir, "left_labels.txt"))
             finetune_model(args, sub_output_dir, keep_label_lst=keep_lable_lst)
     else:
+        os.makedirs(args.output_dir, exist_ok=True)
+        os.system(f"chmod -R 777 {args.output_dir}")
         save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
         finetune_model(args, args.output_dir, keep_label_lst=full_label_lst)
 

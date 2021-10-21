@@ -2,6 +2,5 @@ tensorboard
 tqdm
 pandas
 pytorch-lightning==0.9.0
-tokenizers==0.9.3
-transformers==3.5.1
+transformers==3.4.0
 tokenizers==0.9.3

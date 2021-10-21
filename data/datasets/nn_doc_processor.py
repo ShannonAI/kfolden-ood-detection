@@ -40,7 +40,7 @@ class NNDocProcessor:
             return list(csv_reader)
 
 
-def convert_examples_to_features(data_sign, data_example_lst, vocab_file, max_seq_length, keep_label_lst):
+def convert_examples_to_features(data_sign, data_example_lst, vocab_file, max_seq_length, do_lowercase, keep_label_lst, ignore_index=-100):
     vocab_token2idx = {}
     with open(vocab_file, "r") as f:
         vocab_lines = f.readlines()
@@ -49,7 +49,7 @@ def convert_examples_to_features(data_sign, data_example_lst, vocab_file, max_se
         vocab_token2idx[vocab_item] = vocab_idx
 
     label_map = {label: i for i, label in enumerate(keep_label_lst)}
-    labels = [label_map[example["label"]] if example["label"] in keep_label_lst else -1 for example in data_example_lst]
+    labels = [label_map[example["label"]] if example["label"] in keep_label_lst else ignore_index for example in data_example_lst]
 
     features = []
     for data_idx, data_example in enumerate(data_example_lst):
@@ -66,17 +66,12 @@ def convert_examples_to_features(data_sign, data_example_lst, vocab_file, max_se
                 data_tokens_idx_lst.append(vocab_token2idx[data_token])
         if len(data_tokens_idx_lst) > max_seq_length:
             data_tokens_idx_lst = data_tokens_idx_lst[: max_seq_length]
-        token_mask = [1]* len(data_tokens_idx_lst)
+        token_mask = [1] * len(data_tokens_idx_lst)
 
         feature = DocDataFeature(input_ids=data_tokens_idx_lst, token_mask=token_mask, label=labels[data_idx])
         features.append(feature)
 
-    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_token_mask = torch.tensor([f.token_mask for f in features], dtype=torch.long)
-    all_label = torch.tensor([f.label for f in features], dtype=torch.long)
-    dataset = TensorDataset(all_input_ids, all_token_mask, all_label)
-
-    return features, dataset
+    return features
 
 
 

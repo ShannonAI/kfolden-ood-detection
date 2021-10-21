@@ -38,10 +38,15 @@ class PLMDocProcessor:
             return list(csv_reader)
 
 
-def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_length, keep_label_lst):
+def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_length, keep_label_lst, ignore_index=-100):
 
     label_map = {label: i for i, label in enumerate(keep_label_lst)}
-    labels = [label_map[example["label"]] if example["label"] in keep_label_lst else -1 for example in data_example_lst]
+    labels = []
+    for example in data_example_lst:
+        if example["label"] in keep_label_lst:
+            labels.append(label_map[example["label"]])
+        else:
+            labels.append(ignore_index)
 
     if data_sign == "agnews_ext":
         # data_type,topic,title,description
@@ -79,8 +84,8 @@ def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_len
     features = []
     for i in range(len(data_example_lst)):
         inputs = {k: batch_encoding[k][i] for k in batch_encoding}
-
-        feature = DocDataFeature(**inputs, label=labels[i])
+        feature = DocDataFeature(input_ids=inputs["input_ids"], attention_mask=inputs["attention_mask"],
+                                 token_type_ids=len(inputs["attention_mask"])*[0], label=labels[i])
         features.append(feature)
 
     all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)

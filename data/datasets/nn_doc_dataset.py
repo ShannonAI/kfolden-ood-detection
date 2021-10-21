@@ -17,10 +17,10 @@ class NNDocDataset(Dataset):
         self.mode = mode
         self.max_seq_length = max_seq_length
         self.do_lower_case = do_lower_case
-        self.data_sign = args.data_sign
+        self.data_name = args.data_name
         self.keep_label_lst = keep_label_lst
 
-        self.processor = NNDocProcessor(self.args.data_dir, dataset_name=self.data_sign, vocab_file=vocab_file)
+        self.processor = NNDocProcessor(self.args.data_dir, dataset_name=self.data_name, )
         if self.mode == "dev":
             self.examples = self.processor.get_dev_examples(dist_sign=distribution_type)
         elif self.mode == "test":
@@ -28,8 +28,8 @@ class NNDocDataset(Dataset):
         else:
             self.examples = self.processor.get_train_examples(dist_sign=distribution_type)
 
-        self.features, self.dataset = convert_examples_to_features(self.data_sign, self.examples, self.max_seq_length,
-                                                                   self.do_lower_case, self.keep_label_lst)
+        self.features = convert_examples_to_features(self.data_name, self.examples, vocab_file, self.max_seq_length,
+                                                     self.do_lower_case, self.keep_label_lst)
 
     def __len__(self):
         return len(self.features)

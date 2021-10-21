@@ -33,12 +33,7 @@ def collate_nn_to_max_length(batch: List[List[torch.Tensor]], padding_idx=0) -> 
         pad_output[sample_idx][: data.shape[0]] = data
     output.append(pad_output)
 
-    pad_output = torch.full([batch_size, max_length], padding_idx, dtype=batch[0]["id_label_mask"].dtype)
-    for sample_idx in range(batch_size):
-        data = batch[sample_idx]["id_label_mask"]
-        pad_output[sample_idx][: data.shape[0]] = data
-    output.append(pad_output)
-
+    output.append(torch.stack([x["id_label_mask"] for x in batch]))
     output.append(torch.stack([x["label"] for x in batch]))
     return output
 

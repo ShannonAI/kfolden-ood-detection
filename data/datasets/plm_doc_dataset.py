@@ -14,9 +14,9 @@ class PLMDocDataset(Dataset):
         self.args = args
         self.mode = mode
         self.distribution_type = distribution_type
-        self.data_sign = args.data_sign
-        self.processor = PLMDocProcessor(self.args.data_dir, dataset_name=self.data_sign)
-        self.max_seq_length = self.args.max_seq_length
+        self.data_name = args.data_name
+        self.processor = PLMDocProcessor(self.args.data_dir, dataset_name=self.data_name)
+        self.max_seq_length = self.args.max_length
         self.keep_label_lst = keep_label_lst
 
         if self.mode == "dev":
@@ -26,7 +26,7 @@ class PLMDocDataset(Dataset):
         else:
             self.examples = self.processor.get_train_examples(dist_sign=distribution_type)
 
-        self.features, self.dataset = convert_examples_to_features(self.data_sign, self.examples, tokenizer, self.max_seq_length, keep_label_lst)
+        self.features, self.dataset = convert_examples_to_features(self.data_name, self.examples, tokenizer, self.max_seq_length, keep_label_lst)
 
     def __len__(self):
         return len(self.features)

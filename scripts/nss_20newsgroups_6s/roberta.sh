@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 
-# bert.sh
+# roberta.sh
 
 TIME_SIGN=2021.10.21
-FILE_NAME=nss_20news_6s_bert
+FILE_NAME=nss_20news_6s_roberta
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 
 MODEL_SCALE=base
-BERT_DIR=/data/lixiaoya/models/bert_cased_large
+BERT_DIR=/data/lixiaoya/models/roberta-large
 DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/20news_6s
 
 TRAIN_BATCH_SIZE=36

@@ -82,7 +82,7 @@ class TrainNNTask(pl.LightningModule):
         output_logging_file = os.path.join(self.save_output_dir, self.args.log_file)
         self.result_logger = open(output_logging_file, "a")
         self.gpus = args.gpus.split(",") if "," in str(args.gpus) else args.gpus
-        self.metric_accuracy = pl.metrics.Accuracy(ddp_sync_on_step=True)
+        self.metric_accuracy = pl.metrics.Accuracy(num_classes=self.num_classes)
         self.num_gpus = 1
         self.pytorch_total_params = sum(p.numel() for p in self.model.parameters())
         self.result_logger.write(f"INFO -> NUMBER OF PARAMS {self.pytorch_total_params}")
@@ -90,7 +90,8 @@ class TrainNNTask(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
-        parser.add_argument("--dataset_name", type=str, default="20news", help=" The name of the task to  train.")
+        parser.add_argument("--data_name", type=str, default="20news_6s", help=" The name of the task to  train.")
+        parser.add_argument("--loss_name", type=str, default="ce", help=" The name of the task to  train.")
         parser.add_argument("--model_type", type=str, default="bert")
         parser = add_basic_configurations(parser)
         parser = add_rnn_configurations(parser)
@@ -110,7 +111,6 @@ class TrainNNTask(pl.LightningModule):
                 "weight_decay": 0.0,
             },
         ]
-
         if self.optimizer == "adamw":
             optimizer = AdamW(optimizer_grouped_parameters,
                               betas=(0.9, 0.999),  # according to RoBERTa paper
@@ -152,17 +152,18 @@ class TrainNNTask(pl.LightningModule):
     def forward(self, input_ids,):
         return self.model(input_ids)
 
-    def compute_loss(self, logits, labels, id_label_mask):
+    def compute_loss(self, logits, labels, id_label_mask, eps=1e-16):
         if self.loss_name == "ce":
-            ce_loss_fct = CrossEntropyLoss(reduction="none")
-            data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
-            avg_loss = torch.sum(data_loss * id_label_mask) / torch.sum(id_label_mask.float())
+            ce_loss_fct = CrossEntropyLoss(reduction="none", ignore_index=-100)
+            data_loss = ce_loss_fct(logits.view(-1, self.num_classes), labels.view(-1))
+            avg_loss = torch.sum(data_loss * id_label_mask) / (torch.sum(id_label_mask.float()) + eps)
         elif self.loss_name == "kfolden":
-            ce_loss_fct = CrossEntropyLoss(reduction="none")
-            ce_data_loss = ce_loss_fct(logits.view(-1, 2), labels.view(-1))
-            ce_avg_loss = torch.sum(ce_data_loss * id_label_mask) / torch.sum(id_label_mask.float())
+            ce_loss_fct = CrossEntropyLoss(reduction="none", ignore_index=-100)
+            ce_data_loss = ce_loss_fct(logits.view(-1, self.num_classes), labels.view(-1))
+            ce_avg_loss = torch.sum(ce_data_loss * id_label_mask) / (torch.sum(id_label_mask.float()) + eps)
             ood_label_mask = torch.tensor(id_label_mask==0, dtype=torch.long)
-            ood_target = labels
+            ood_single_target = 1 / float(self.num_classes)
+            ood_target = torch.zeros_like(logits).fill_(ood_single_target).to('cuda')
             kl_loss = F.kl_div(logits, ood_target, reduction='none', log_target=False)
             kl_avg_loss = torch.sum(kl_loss) / torch.sum(ood_label_mask)
             avg_loss = (1 - self.args.lambda_loss) * ce_avg_loss + self.args.lambda_loss * kl_avg_loss
@@ -182,13 +183,14 @@ class TrainNNTask(pl.LightningModule):
         output_logits = self.model(input_ids)
         loss = self.compute_loss(output_logits, gold_labels, id_label_mask)
         pred_labels = _transform_logits_to_labels(output_logits)
-        self.metric_accuracy.update(pred_labels, gold_labels)
+        batch_acc = self.metric_accuracy.forward(pred_labels, gold_labels)
         output[f"val_loss"] = loss
+        output[f"val_acc"] = batch_acc
         return output
 
     def validation_epoch_end(self, outputs, prefix="dev"):
         avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        avg_acc = self.metric_accuracy.compute()
+        avg_acc = torch.stack([x["val_acc"] for x in outputs]).mean() / self.num_gpus
         tensorboard_logs = {"val_loss": avg_loss}
         tensorboard_logs[f"acc"] = avg_acc
 
@@ -285,8 +287,6 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
 
 def train_model(args, save_output_dir, keep_label_lst=[]):
     task_model = TrainNNTask(args, keep_label_lst=keep_label_lst, save_output_dir=save_output_dir)
-    if len(args.pretrained_checkpoint) > 1:
-        task_model.load_state_dict(torch.load(args.pretrained_checkpoint, map_location=torch.device("cpu"))["state_dict"])
 
     checkpoint_callback = ModelCheckpoint(
         filepath=save_output_dir,
@@ -326,12 +326,14 @@ def main():
             left_label_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx in range(idx, idx+args.num_of_left_label)]
             keep_lable_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx not in range(idx, idx+args.num_of_left_label)]
             sub_output_dir = os.path.join(args.output_dir, f"{idx}")
-            os.makedirs(sub_output_dir, mode=777, exist_ok=True)
+            os.makedirs(sub_output_dir, exist_ok=True)
+            os.system(f"chmod -R 777 {sub_output_dir}")
             save_label_to_file(keep_lable_lst, os.path.join(sub_output_dir, "keep_labels.txt"))
             save_label_to_file(left_label_lst, os.path.join(sub_output_dir, "left_labels.txt"))
             train_model(args, sub_output_dir, keep_label_lst=keep_lable_lst)
     else:
-        os.makedirs(args.output_dir, mode=777, exist_ok=True)
+        os.makedirs(args.output_dir, exist_ok=True)
+        os.system(f"chmod -R 777 {args.output_dir}")
         save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
         train_model(args, args.output_dir, keep_label_lst=full_label_lst)
 

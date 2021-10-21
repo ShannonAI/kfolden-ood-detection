@@ -7,8 +7,8 @@
 def get_labels(data_sign, dist_sign="id"):
     if data_sign == "agnews_ext":
         if dist_sign == "id":
-            return []
-        return []
+            return ["World", "Sports", "Business", "Sci/Tech"]
+        return ["World", "Sports", "Business", "Sci/Tech"]
     elif data_sign == "20news_6s":
         if dist_sign == "id":
             return ["comp", "rec", "sci", "religion", "politics", "misc"]
