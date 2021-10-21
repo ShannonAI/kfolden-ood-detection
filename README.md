@@ -19,7 +19,7 @@ If you find this repository helpful, please cite the following:
 
 In this paper, we construct semantic shift and non-semantic shift benchmarks for out-of-distribution detection. <br>
 You can download the benchmarks following this [guidline](./data/README.md). 
-And this repository also contains [code](./data/preprocess) and [scripts](./scripts/data_preprocess) for generating our benchmarks from their original datafiles.   <br>
+This repository contains [code](./data/preprocess) and [scripts](./scripts/data_preprocess) for generating our benchmarks from their original datafiles.   <br>
 The unzipped dataset directory should have the following structure: <br>
 
 ```text
