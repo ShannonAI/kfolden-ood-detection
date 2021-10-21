@@ -5,6 +5,7 @@
 logs/*
 experiments/*
 log/*
+tests/*
 
 # backup files
 bk
