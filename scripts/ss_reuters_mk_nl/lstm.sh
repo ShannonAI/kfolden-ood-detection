@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # -*- coding: utf-8 -*-
 
-# file: cnn.sh
+# file: lstm.sh
 
 TIME_SIGN=2021.10.21
-FILE_NAME=nss_20news_6s_cnn
+FILE_NAME=nss_20news_6s_lstm
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
-export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
 PRECISION=32
 PROGRESS_BAR=1
 VAL_CHECK_INTERVAL=0.25
+export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
 OUTPUT_BASE_DIR=/data/lixiaoya/outputs/kfolden
 OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}
@@ -23,28 +23,27 @@ LOG_FILE=${OUTPUT_DIR}/train_log.txt
 INIT_EMBEDDING=/data/lixiaoya/datasets/confidence/embeddings/glove.6B.300d.npy
 VOCAB_SIZE=400002
 EMB_SIZE=300
-MODEL=cnn
+MODEL=rnn
 
 MAX_LEN=128
 EPOCH=20
 OPTIM=torch.adam
 WEIGHT_DECAY=5e-4
-LR=0.001
-LR_SCHEDULER=linear
+LR=0.003
+LR_SCHEDULER=polydecay
 WARMUP=0.0
 MAX_CKPT=20
 TRAIN_BATCH_SIZE=16
 EVAL_BATCH_SIZE=12
-DROPOUT=0.2
+DROPOUT=0.5
 CLASSIFIER=mlp
 ACTIVATE=relu
 NUM_LABEL=20
-HIDDEN_SIZE=100
+HIDDEN_SIZE=300
+NUM_LAYER=1
+RNN_DROPOUT=0.3
+RNN_ACT=tanh
 POOLING=max_pool
-
-NUM_KERNEL=6
-KERNEL_SIZE="3;4;5;6;7;8"
-CONV_STRIDE="1;2;2;2;3;3"
 
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
@@ -67,7 +66,7 @@ CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --max_keep_ckpt ${MAX_CKPT} \
 --output_dir ${OUTPUT_DIR} \
 --log_file ${LOG_FILE} \
---dropout ${DROPOUT} \
+--dropout 0.1 \
 --classifier_type ${CLASSIFIER} \
 --activate_func ${ACTIVATE} \
 --padding_idx 0 \
@@ -75,11 +74,13 @@ CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --vocab_size ${VOCAB_SIZE} \
 --embedding_size ${EMB_SIZE} \
 --hidden_size ${HIDDEN_SIZE} \
+--num_layers ${NUM_LAYER} \
+--rnn_dropout ${RNN_DROPOUT} \
+--rnn_activate_func ${RNN_ACT} \
 --pooling_strategy ${POOLING} \
 --model_type ${MODEL} \
---distributed_backend 'dp' \
+--max_epochs ${EPOCH} \
 --gradient_clip_val 1.0 \
---num_kernels ${NUM_KERNEL} \
---kernel_size ${KERNEL_SIZE} \
---conv_stride ${CONV_STRIDE} \
---max_epochs ${EPOCH}
+--bidirectional \
+--rnn_cell_type lstm \
+--distributed_backend 'dp'

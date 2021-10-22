@@ -217,7 +217,7 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
     with open(os.path.join(output_dir, log_file)) as f:
         log_lines = f.readlines()
 
-    F1_PATTERN = re.compile(r"val_f1 reached \d+\.\d* \(best")
+    ACC_PATTERN = re.compile(r"val_acc reached \d+\.\d* \(best")
     # val_f1 reached 0.00000 (best 0.00000)
     CKPT_PATTERN = re.compile(r"saving model to \S+ as top")
     checkpoint_info_lines = []
@@ -226,20 +226,19 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
             checkpoint_info_lines.append(log_line)
     # example of log line
     # Epoch 00000: val_f1 reached 0.00000 (best 0.00000), saving model to /data/xiaoya/outputs/0117/debug_5_12_2e-5_0.001_0.001_275_0.1_1_0.25/checkpoint/epoch=0.ckpt as top 20
-    best_f1_on_dev = 0
+    best_acc_on_dev = 0
     best_checkpoint_on_dev = ""
     for checkpoint_info_line in checkpoint_info_lines:
-        current_f1 = float(
-            re.findall(F1_PATTERN, checkpoint_info_line)[0].replace("val_acc reached ", "").replace(" (best", ""))
+        current_acc = float(
+            re.findall(ACC_PATTERN, checkpoint_info_line)[0].replace("val_acc reached ", "").replace(" (best", ""))
         current_ckpt = re.findall(CKPT_PATTERN, checkpoint_info_line)[0].replace("saving model to ", "").replace(" as top", "")
 
-        if current_f1 >= best_f1_on_dev:
+        if current_acc >= best_acc_on_dev:
             if only_keep_the_best_ckpt and len(best_checkpoint_on_dev) != 0:
                 os.remove(best_checkpoint_on_dev)
-            best_f1_on_dev = current_f1
+            best_acc_on_dev = current_acc
             best_checkpoint_on_dev = current_ckpt
-
-    return best_f1_on_dev, best_checkpoint_on_dev
+    return best_acc_on_dev, best_checkpoint_on_dev
 
 
 def finetune_model(args, save_output_dir, keep_label_lst=[]):
@@ -260,12 +259,16 @@ def finetune_model(args, save_output_dir, keep_label_lst=[]):
     task_trainer.fit(task_model)
 
     # after training, use the model checkpoint which achieves the best f1 score on dev set to compute the f1 on test set.
-    best_f1_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(save_output_dir, only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
+    best_acc_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(save_output_dir, only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
     task_model.result_logger.info("=&" * 20)
     task_model.result_logger.info(f"saved output dir is : {save_output_dir}")
-    task_model.result_logger.info(f"Best F1 on DEV is {best_f1_on_dev}")
+    task_model.result_logger.info(f"Best ACC on DEV is {best_acc_on_dev}")
     task_model.result_logger.info(f"Best checkpoint on DEV set is {path_to_best_checkpoint}")
     task_model.result_logger.info("=&" * 20)
+    file_saving_best_ckpt = os.path.join(save_output_dir, "best_ckpt_on_dev.txt")
+    with open(file_saving_best_ckpt, "w") as f:
+        f.write(f"{path_to_best_checkpoint}\n")
+
 
 def save_label_to_file(label_lst, label_file):
     with open(label_file, "w") as f:

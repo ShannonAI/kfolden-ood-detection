@@ -5,9 +5,7 @@
 
 import os
 import csv
-import torch
 from collections import namedtuple
-from torch.utils.data import TensorDataset
 
 from data.data_utils.clean_text import remove_stop_and_lowfreq_words_func, clean_20newsgroup_data, tokenize_and_clean_text_str
 
