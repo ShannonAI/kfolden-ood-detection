@@ -14,7 +14,6 @@ def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
                            'its last element does not correspond to sum')
     return out
 
-
 def fpr_and_fdr_at_recall(y_true, y_score, recall_level=0.95, pos_label=1.):
     y_true = (y_true == pos_label)
 
