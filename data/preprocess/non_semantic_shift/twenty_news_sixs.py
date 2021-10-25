@@ -10,8 +10,9 @@ import collections
 from glob import glob
 from utils.random_seed import set_random_seed
 set_random_seed(2333)
+from data.data_utils.clean_text import clean_20newsgroup_data, tokenize_and_clean_text_str
 
-TwentyNews = collections.namedtuple("TwentyNews",["data_type", "root_topic", "topic", "data", "file_name"])
+TwentyNews = collections.namedtuple("TwentyNews",["name", "data_type", "root_topic", "topic", "data", "file_name"])
 
 
 def split_id_ood_distribution_strategy(train_obj_dict, dev_obj_dict, test_obj_dict):
@@ -80,15 +81,16 @@ def save_id_ood_data(save_data_dir, data_file_name, data_object_dict):
     data_file_path = os.path.join(save_data_dir, data_file_name)
     data_counter = 0
     with open(data_file_path, mode="w", encoding="utf-8", newline="\n") as w_csv_file:
-        fieldnames = ['merge_label', 'data', 'label', ]
+        fieldnames = ['label', 'data']
         writer = csv.DictWriter(w_csv_file, fieldnames=fieldnames)
         writer.writeheader()
         for data_obj_key in data_object_dict.keys():
             for data_item in data_object_dict[data_obj_key]:
                 data_counter += 1
-                writer.writerow({'merge_label': data_obj_key,
-                                 'data': repr(data_item.data),
-                                 'label': data_item.topic,})
+                cleaned_data = clean_20newsgroup_data(data_item.data)
+                cleaned_data = tokenize_and_clean_text_str(cleaned_data)
+                writer.writerow({'label': data_obj_key,
+                                 'data': repr(cleaned_data)})
 
     print("*="*10)
     print(f">>> save file to : {data_file_path}")
@@ -133,7 +135,7 @@ def load_twenty_news_data(data_dir, save_csv_data=False):
     for train_file in train_file_lst:
         tmp_file_name, tmp_file_topic, tmp_file_root_topic, tmp_file_type = return_label_from_file_path(train_file)
         tmp_data = load_data(train_file)
-        tmp_train_data_obj = TwentyNews(data_type=tmp_file_type, topic=tmp_file_topic, root_topic=tmp_file_root_topic, data=tmp_data, file_name=tmp_file_name)
+        tmp_train_data_obj = TwentyNews(name="20news", data_type=tmp_file_type, topic=tmp_file_topic, root_topic=tmp_file_root_topic, data=tmp_data, file_name=tmp_file_name)
         if tmp_file_topic not in train_object_dict.keys():
             train_object_dict[tmp_file_topic] = [tmp_train_data_obj]
         else:
@@ -143,7 +145,7 @@ def load_twenty_news_data(data_dir, save_csv_data=False):
     for dev_file in dev_file_lst:
         tmp_file_name, tmp_file_topic, tmp_file_root_topic, tmp_file_type = return_label_from_file_path(dev_file)
         tmp_data = load_data(dev_file)
-        tmp_dev_data_obj = TwentyNews(data_type=tmp_file_type, topic=tmp_file_topic, root_topic=tmp_file_root_topic, data=tmp_data, file_name=tmp_file_name)
+        tmp_dev_data_obj = TwentyNews(name="20news", data_type=tmp_file_type, topic=tmp_file_topic, root_topic=tmp_file_root_topic, data=tmp_data, file_name=tmp_file_name)
         if tmp_file_topic not in dev_object_dict.keys():
             dev_object_dict[tmp_file_topic] = [tmp_dev_data_obj]
         else:
@@ -153,7 +155,7 @@ def load_twenty_news_data(data_dir, save_csv_data=False):
     for test_file in test_file_lst:
         tmp_file_name, tmp_file_topic, tmp_file_root_topic, tmp_file_type = return_label_from_file_path(test_file)
         tmp_data = load_data(test_file)
-        tmp_test_data_obj = TwentyNews(data_type=tmp_file_type, topic=tmp_file_topic, root_topic=tmp_file_root_topic, data=tmp_data, file_name=tmp_file_name)
+        tmp_test_data_obj = TwentyNews(name="20news", data_type=tmp_file_type, topic=tmp_file_topic, root_topic=tmp_file_root_topic, data=tmp_data, file_name=tmp_file_name)
         if tmp_file_topic not in test_object_dict.keys():
             test_object_dict[tmp_file_topic] = [tmp_test_data_obj]
         else:

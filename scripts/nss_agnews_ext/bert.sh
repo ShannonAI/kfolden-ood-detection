@@ -9,7 +9,7 @@ REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 
 MODEL_SCALE=base
 BERT_DIR=/data/lixiaoya/models/bert_cased_large
-DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/20news_6s
+DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/agnews_ext
 
 TRAIN_BATCH_SIZE=36
 EVAL_BATCH_SIZE=12
@@ -26,6 +26,9 @@ GRAD_CLIP=1.0
 WEIGHT_DECAY=0.002
 WARMUP_PROPORTION=0.1
 
+DATA_NAME=agnews_ext
+LOSS_NAME=ce
+
 PRECISION=16
 PROGRESS_BAR=1
 VAL_CHECK_INTERVAL=0.25
@@ -39,6 +42,7 @@ mkdir -p ${OUTPUT_DIR}
 CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/finetune_plm.py \
 --gpus="1" \
 --precision=${PRECISION} \
+--data_name ${DATA_NAME} \
 --train_batch_size ${TRAIN_BATCH_SIZE} \
 --eval_batch_size ${EVAL_BATCH_SIZE} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \

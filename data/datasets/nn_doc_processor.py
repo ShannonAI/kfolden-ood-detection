@@ -69,7 +69,7 @@ def convert_examples_to_features(data_sign, data_example_lst, vocab_file, max_se
         feature = DocDataFeature(input_ids=data_tokens_idx_lst, token_mask=token_mask, label=labels[data_idx])
         features.append(feature)
 
-    return features
+    return features, label_map
 
 
 

@@ -19,6 +19,8 @@ OPTIMIZER=torch.adam
 LR_SCHEDULE=linear
 LR=3e-5
 
+DATA_NAME=yahoo_answers_fm
+
 BERT_DROPOUT=0.1
 ACC_GRAD=1
 MAX_EPOCH=5
@@ -38,6 +40,7 @@ mkdir -p ${OUTPUT_DIR}
 
 CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/finetune_plm.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --precision=${PRECISION} \
 --train_batch_size ${TRAIN_BATCH_SIZE} \
 --eval_batch_size ${EVAL_BATCH_SIZE} \

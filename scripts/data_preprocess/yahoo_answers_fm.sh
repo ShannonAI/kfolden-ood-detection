@@ -3,12 +3,12 @@
 
 # file: yahoo_answers_fm.sh
 
-REPO_PATH=/data/xiaoya/workspace/kfolden_ood_detection
+REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
 
-YAHOO_ANSWERS_DIR=/data/xiaoya/datasets/confidence/yahoo_answers/yahoo_answers_csv
-SAVE_DATA_DIR=/data/xiaoya/datasets/kfolden_ood_detection/yahoo_answers_fm
+YAHOO_ANSWERS_DIR=/data/lixiaoya/datasets/confidence/yahoo_answers/yahoo_answers_csv
+SAVE_DATA_DIR=/data/lixiaoya/datasets/kfolden/yahoo_answers_fm
 
 mkdir -p ${SAVE_DATA_DIR}
 

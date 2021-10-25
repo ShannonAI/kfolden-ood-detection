@@ -4,6 +4,7 @@
 # file: process_word_emb.py
 
 import os
+import sys
 import numpy as np
 
 
@@ -51,6 +52,6 @@ def extract_glove_vocab_and_weights(glove_embedding_file_path, save_dir):
 
 
 if __name__ == "__main__":
-    glove_embedding_file_path = "/data/nfsdata/nlp/embeddings/glove/glove.6B.300d.txt"
-    save_dir = "/data/xiaoya/datasets/confidence/embeddings"
+    glove_embedding_file_path = sys.argv[1]
+    save_dir = sys.argv[2]
     extract_glove_vocab_and_weights(glove_embedding_file_path, save_dir)

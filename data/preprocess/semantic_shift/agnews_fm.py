@@ -10,9 +10,10 @@ import argparse
 import collections
 from utils.random_seed import set_random_seed
 set_random_seed(2333)
+from data.data_utils.clean_text import tokenize_and_clean_text_str
 
-AGNews = collections.namedtuple("AGNews",["data_type", "topic", "title", "description"])
-AGCorpus = collections.namedtuple("AGCorpus",["topic", "title", "description"])
+AGNews = collections.namedtuple("AGNews",["name", "data_type", "topic", "title", "description"])
+AGCorpus = collections.namedtuple("AGCorpus",["name", "topic", "title", "description"])
 
 
 def load_agnews_data(data_dir):
@@ -34,7 +35,7 @@ def load_agnews_data(data_dir):
         for train_data_item in train_datareader:
             data_content = train_data_item
             label_content = idx_to_label_dict[data_content[0]]
-            tmp_data_record = AGNews(data_type="train", topic=label_content, title=data_content[1], description=data_content[2])
+            tmp_data_record = AGNews(name="agnews", data_type="train", topic=label_content, title=data_content[1], description=data_content[2])
             if label_content not in train_dev_obj_dict.keys():
                 train_dev_obj_dict[label_content] = [tmp_data_record]
             else:
@@ -54,7 +55,7 @@ def load_agnews_data(data_dir):
         for test_data_item in test_datareader:
             data_content = test_data_item
             label_content = idx_to_label_dict[data_content[0]]
-            tmp_data_record = AGNews(data_type="test", topic=label_content, title=data_content[1], description=data_content[2])
+            tmp_data_record = AGNews(name="agnews", data_type="test", topic=label_content, title=data_content[1], description=data_content[2])
             if label_content not in test_obj_dict.keys():
                 test_obj_dict[label_content] = [tmp_data_record]
             else:
@@ -88,7 +89,7 @@ def load_agcorpus_data(data_file):
         tmp_category = data_item[data_item.index("<category>") + len("<category>"): data_item.index("</category>")]
         tmp_description = data_item[data_item.index("<description>") + len("<description>"): data_item.index("</description>")]
 
-        tmp_agcorpus_obj = AGCorpus(topic=tmp_category, title=tmp_title, description=tmp_description)
+        tmp_agcorpus_obj = AGCorpus(name="agcorpus", topic=tmp_category, title=tmp_title, description=tmp_description)
         if tmp_category not in data_obj_dict.keys():
             data_obj_dict[tmp_category] = [tmp_agcorpus_obj]
         else:
@@ -130,15 +131,17 @@ def save_id_ood_data(save_data_dir, data_file_name, data_object_dict):
     data_file_path = os.path.join(save_data_dir, data_file_name)
     data_counter = 0
     with open(data_file_path, mode="w", encoding="utf-8", newline="\n") as w_csv_file:
-        fieldnames = ['label', 'topic', 'description']
+        fieldnames = ['label', 'data']
         writer = csv.DictWriter(w_csv_file, fieldnames=fieldnames)
         writer.writeheader()
         for data_obj_key in data_object_dict.keys():
             for data_item in data_object_dict[data_obj_key]:
                 data_counter += 1
+                cleaned_title = tokenize_and_clean_text_str(data_item.title)
+                cleaned_desc = tokenize_and_clean_text_str(data_item.description)
+                text_content = cleaned_title + " " + cleaned_desc
                 writer.writerow({'label': data_item.topic,
-                                 'topic': repr(data_item.topic),
-                                 'description': repr(data_item.description)})
+                                 'data': repr(text_content)})
 
     print(f">>> save file to : {data_file_path}")
     print(f">>> the number of record is : {data_counter}")

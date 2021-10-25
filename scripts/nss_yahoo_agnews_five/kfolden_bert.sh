@@ -29,6 +29,8 @@ WARMUP_PROPORTION=0.1
 NUM_LEAVE_OUT_LABEL=1
 LAMBDA_LOSS=0.2
 
+DATA_NAME=yahoo_agnews_five
+
 PRECISION=32
 PROGRESS_BAR=1
 VAL_CHECK_INTERVAL=0.25
@@ -40,6 +42,7 @@ mkdir -p ${OUTPUT_DIR}
 
 CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/finetune_plm.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --precision=${PRECISION} \
 --train_batch_size ${TRAIN_BATCH_SIZE} \
 --eval_batch_size ${EVAL_BATCH_SIZE} \

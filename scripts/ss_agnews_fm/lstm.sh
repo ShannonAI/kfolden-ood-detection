@@ -12,6 +12,8 @@ PROGRESS_BAR=1
 VAL_CHECK_INTERVAL=0.25
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
+DATA_NAME=agnews_fm
+
 OUTPUT_BASE_DIR=/data/lixiaoya/outputs/kfolden
 OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}
 
@@ -47,6 +49,7 @@ POOLING=max_pool
 
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --default_root ${OUTPUT_DIR} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \
 --val_check_interval ${VAL_CHECK_INTERVAL} \

@@ -15,6 +15,8 @@ VAL_CHECK_INTERVAL=0.25
 OUTPUT_BASE_DIR=/data/lixiaoya/outputs/kfolden
 OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}
 
+DATA_NAME=agnews_fl
+
 mkdir -p ${OUTPUT_DIR}
 
 DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/20news_6s
@@ -48,6 +50,7 @@ CONV_STRIDE="1;2;2;2;3;3"
 
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --default_root ${OUTPUT_DIR} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \
 --val_check_interval ${VAL_CHECK_INTERVAL} \

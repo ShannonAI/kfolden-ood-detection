@@ -16,6 +16,7 @@ MAX_LENGTH=64
 
 NUM_LEAVE_OUT_LABEL=1
 
+DATA_NAME=agnews_fl
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 OUTPUT_BASE_DIR=/data/lixiaoya/outputs/kfolden
 OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}_${MODEL_SCALE}_${TRAIN_BATCH_SIZE}_${MAX_LENGTH}_${LR}_${LR_SCHEDULE}_${BERT_DROPOUT}_${ACC_GRAD}_${MAX_EPOCH}_${GRAD_CLIP}_${WEIGHT_DECAY}_${WARMUP_PROPORTION}_${LOSS_SIGN}
@@ -24,6 +25,7 @@ mkdir -p ${OUTPUT_DIR}
 
 CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/evaluate_plm_model.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --eval_batch_size ${EVAL_BATCH_SIZE} \
 --max_length ${MAX_LENGTH} \
 --data_dir ${DATA_DIR} \

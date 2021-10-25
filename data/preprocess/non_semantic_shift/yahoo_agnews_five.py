@@ -10,9 +10,11 @@ import argparse
 import collections
 from utils.random_seed import set_random_seed
 set_random_seed(2333)
+from data.data_utils.clean_text import clean_20newsgroup_data, tokenize_and_clean_text_str
 
-AGCorpus = collections.namedtuple("AGCorpus",["topic", "title", "description"])
-YahooAnswers = collections.namedtuple("YahooAnswers",["data_type", "topic", "question_title", "question_content", "best_answer"])
+
+AGCorpus = collections.namedtuple("AGCorpus",["name", "topic", "title", "description"])
+YahooAnswers = collections.namedtuple("YahooAnswers",["name", "data_type", "topic", "question_title", "question_content", "best_answer"])
 
 def load_agcorpus_data(data_file):
     # <category>Business</category>
@@ -29,7 +31,7 @@ def load_agcorpus_data(data_file):
         tmp_category = data_item[data_item.index("<category>") + len("<category>"): data_item.index("</category>")]
         tmp_description = data_item[data_item.index("<description>") + len("<description>"): data_item.index("</description>")]
 
-        tmp_agcorpus_obj = AGCorpus(topic=tmp_category, title=tmp_title, description=tmp_description)
+        tmp_agcorpus_obj = AGCorpus(name="agcorpus", topic=tmp_category, title=tmp_title, description=tmp_description)
         if tmp_category not in data_obj_dict.keys():
             data_obj_dict[tmp_category] = [tmp_agcorpus_obj]
         else:
@@ -54,7 +56,7 @@ def load_yahoo_answers_data(data_dir):
         for train_data_item in train_datareader:
             data_content = train_data_item
             label_content = idx_to_label_dict[data_content[0]]
-            tmp_data_record = YahooAnswers(data_type="train", topic=label_content, question_title=data_content[1],
+            tmp_data_record = YahooAnswers(name="yahooanswers", data_type="train", topic=label_content, question_title=data_content[1],
                                            question_content=data_content[2], best_answer=data_content[3])
             if label_content not in train_dev_obj_dict.keys():
                 train_dev_obj_dict[label_content] = [tmp_data_record]
@@ -75,7 +77,7 @@ def load_yahoo_answers_data(data_dir):
         for test_data_item in test_datareader:
             data_content = test_data_item
             label_content = idx_to_label_dict[data_content[0]]
-            tmp_data_record = YahooAnswers(data_type="test", topic=label_content, question_title=data_content[1],
+            tmp_data_record = YahooAnswers(name="yahooanswers", data_type="test", topic=label_content, question_title=data_content[1],
                                            question_content=data_content[2], best_answer=data_content[3])
             if label_content not in test_obj_dict.keys():
                 test_obj_dict[label_content] = [tmp_data_record]
@@ -117,15 +119,21 @@ def save_id_ood_data(save_data_dir, data_file_name, data_object_dict):
     data_file_path = os.path.join(save_data_dir, data_file_name)
     data_counter = 0
     with open(data_file_path, mode="w", encoding="utf-8", newline="\n") as w_csv_file:
-        fieldnames = ['merge_label', 'data', 'label', ]
+        fieldnames = ['label', 'data']
         writer = csv.DictWriter(w_csv_file, fieldnames=fieldnames)
         writer.writeheader()
         for data_obj_key in data_object_dict.keys():
             for data_item in data_object_dict[data_obj_key]:
                 data_counter += 1
-                writer.writerow({'merge_label': data_obj_key,
-                                 'data': repr(data_item.data),
-                                 'label': data_item.topic,})
+                if data_item.name == "agcorpus":
+                    text_content = data_item.title + " " + data_item.description
+                elif data_item.name == "yahooanswers":
+                    text_content = data_item.question_title + " " + data_item.question_content
+                else:
+                    raise ValueError
+                cleaned_data = tokenize_and_clean_text_str(text_content)
+                writer.writerow({'label': data_obj_key,
+                                 'data': repr(cleaned_data),})
 
     print("*="*10)
     print(f">>> save file to : {data_file_path}")

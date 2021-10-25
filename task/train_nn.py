@@ -7,6 +7,7 @@
 import os
 import re
 import argparse
+import logging
 from collections import namedtuple
 from utils.random_seed import set_random_seed
 set_random_seed(2333)
@@ -79,8 +80,8 @@ class TrainNNTask(pl.LightningModule):
         else:
             raise ValueError("the input model_type does not exist.")
 
-        output_logging_file = os.path.join(self.save_output_dir, self.args.log_file)
-        self.result_logger = open(output_logging_file, "a")
+        self.result_logger = logging.getLogger(__name__)
+        self.result_logger.setLevel(logging.INFO)
         self.gpus = args.gpus.split(",") if "," in str(args.gpus) else args.gpus
         self.metric_accuracy = pl.metrics.Accuracy(num_classes=self.num_classes)
         self.num_gpus = 1
@@ -164,9 +165,10 @@ class TrainNNTask(pl.LightningModule):
             ood_label_mask = torch.tensor(id_label_mask==0, dtype=torch.long)
             ood_single_target = 1 / float(self.num_classes)
             ood_target = torch.zeros_like(logits).fill_(ood_single_target).to('cuda')
-            kl_loss = F.kl_div(logits, ood_target, reduction='none', log_target=False)
-            kl_avg_loss = torch.sum(kl_loss) / torch.sum(ood_label_mask)
-            avg_loss = (1 - self.args.lambda_loss) * ce_avg_loss + self.args.lambda_loss * kl_avg_loss
+            norm_logits = F.softmax(logits, dim=-1)
+            kl_loss = F.kl_div(norm_logits, ood_target, reduction='none', log_target=False)
+            kl_avg_loss = torch.sum(kl_loss) / torch.sum(ood_label_mask + eps)
+            avg_loss = ce_avg_loss + self.args.lambda_loss * kl_avg_loss
         return avg_loss
 
     def training_step(self, batch, batch_idx):
@@ -255,7 +257,7 @@ def _transform_logits_to_labels(output_logits):
     return pred_labels
 
 
-def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_log.txt", only_keep_the_best_ckpt: bool = True):
+def find_best_checkpoint_on_dev(output_dir: str, path_prefix: str, log_file: str = "eval_result_log.txt", only_keep_the_best_ckpt: bool = True):
     with open(os.path.join(output_dir, log_file)) as f:
         log_lines = f.readlines()
 
@@ -271,6 +273,8 @@ def find_best_checkpoint_on_dev(output_dir: str, log_file: str = "eval_result_lo
     best_acc_on_dev = 0
     best_checkpoint_on_dev = ""
     for checkpoint_info_line in checkpoint_info_lines:
+        if path_prefix not in checkpoint_info_line:
+            continue
         current_acc = float(
             re.findall(ACC_PATTERN, checkpoint_info_line)[0].replace("val_acc reached ", "").replace(" (best", ""))
         current_ckpt = re.findall(CKPT_PATTERN, checkpoint_info_line)[0].replace("saving model to ", "").replace(" as top", "")
@@ -299,7 +303,7 @@ def train_model(args, save_output_dir, keep_label_lst=[]):
     task_trainer.fit(task_model)
 
     # after training, use the model checkpoint which achieves the best f1 score on dev set to compute the f1 on test set.
-    best_acc_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(save_output_dir, only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
+    best_acc_on_dev, path_to_best_checkpoint = find_best_checkpoint_on_dev(args.output_dir, save_output_dir+"/", only_keep_the_best_ckpt=args.only_keep_the_best_ckpt_after_training)
     task_model.result_logger.info("=&" * 20)
     task_model.result_logger.info(f"saved output dir is : {save_output_dir}")
     task_model.result_logger.info(f"Best ACC on DEV is {best_acc_on_dev}")
@@ -321,19 +325,27 @@ def main():
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     full_label_lst = get_labels(args.data_name, dist_sign="id")
+    format = '%(asctime)s - %(name)s - %(message)s'
+    logging.basicConfig(format=format, filename=os.path.join(args.output_dir, "eval_result_log.txt"), level=logging.INFO)
 
     if args.enable_leave_label_out:
         save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
         for idx in range(0, len(full_label_lst), args.num_of_left_label):
+            print("$" * 30)
+            print(f">>> ENABLE LEAVE OUT TRAINING ...")
             left_label_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx in range(idx, idx+args.num_of_left_label)]
-            keep_lable_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx not in range(idx, idx+args.num_of_left_label)]
+            keep_label_lst = [item for item_idx, item in enumerate(full_label_lst) if item_idx not in range(idx, idx+args.num_of_left_label)]
             sub_output_dir = os.path.join(args.output_dir, f"{idx}")
             os.makedirs(sub_output_dir, exist_ok=True)
             os.system(f"chmod -R 777 {sub_output_dir}")
-            save_label_to_file(keep_lable_lst, os.path.join(sub_output_dir, "keep_labels.txt"))
+            save_label_to_file(keep_label_lst, os.path.join(sub_output_dir, "keep_labels.txt"))
             save_label_to_file(left_label_lst, os.path.join(sub_output_dir, "left_labels.txt"))
-            train_model(args, sub_output_dir, keep_label_lst=keep_lable_lst)
+            print(f">>> target labels:  {keep_label_lst}")
+            train_model(args, sub_output_dir, keep_label_lst=keep_label_lst)
     else:
+        print("$" * 30)
+        print(f">>> ENABLE ALL LABEL TRAINING ...")
+        print(f">>> target labels:  {full_label_lst}")
         os.makedirs(args.output_dir, exist_ok=True)
         os.system(f"chmod -R 777 {args.output_dir}")
         save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))

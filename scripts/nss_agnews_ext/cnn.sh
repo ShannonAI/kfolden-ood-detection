@@ -41,6 +41,7 @@ ACTIVATE=relu
 NUM_LABEL=20
 HIDDEN_SIZE=100
 POOLING=max_pool
+DATA_NAME=agnews_ext
 
 NUM_KERNEL=6
 KERNEL_SIZE="3;4;5;6;7;8"
@@ -48,6 +49,7 @@ CONV_STRIDE="1;2;2;2;3;3"
 
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --default_root ${OUTPUT_DIR} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \
 --val_check_interval ${VAL_CHECK_INTERVAL} \

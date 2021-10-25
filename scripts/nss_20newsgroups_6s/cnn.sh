@@ -8,6 +8,8 @@ FILE_NAME=nss_20news_6s_cnn
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
+DATA_NAME=20news_6s
+
 PRECISION=32
 PROGRESS_BAR=1
 VAL_CHECK_INTERVAL=0.25
@@ -49,6 +51,7 @@ CONV_STRIDE="1;2;2;2;3;3"
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
 --default_root ${OUTPUT_DIR} \
+--data_name ${DATA_NAME} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \
 --val_check_interval ${VAL_CHECK_INTERVAL} \
 --precision=${PRECISION} \

@@ -3,12 +3,12 @@
 
 # file: agnews_fl.sh
 
-REPO_PATH=/data/xiaoya/workspace/kfolden_ood_detection
+REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
-AGNEWS_DATA_DIR=/data/xiaoya/datasets/confidence/agnews/ag_news_csv
-AGCORPUS_FILE=/data/xiaoya/datasets/confidence/agnews/newsspace200.xml
-SAVE_DATA_DIR=/data/xiaoya/datasets/kfolden_ood_detection/agnews_fl
+AGNEWS_DATA_DIR=/data/lixiaoya/datasets/confidence/agnews/ag_news_csv
+AGCORPUS_FILE=/data/lixiaoya/datasets/confidence/agnews/newsspace200.xml
+SAVE_DATA_DIR=/data/lixiaoya/datasets/kfolden/agnews_fl
 
 mkdir -p ${SAVE_DATA_DIR}
 

@@ -14,6 +14,8 @@ DATA_DIR=/data/xiaoya/datasets/kfolden_ood_detection/20news_6s
 EVAL_BATCH_SIZE=12
 MAX_LENGTH=64
 
+DATA_NAME=20news_6s
+
 NUM_LEAVE_OUT_LABEL=1
 
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
@@ -24,12 +26,12 @@ mkdir -p ${OUTPUT_DIR}
 
 CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/evaluate_plm_model.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --eval_batch_size ${EVAL_BATCH_SIZE} \
 --max_length ${MAX_LENGTH} \
 --data_dir ${DATA_DIR} \
 --bert_config_dir ${BERT_DIR} \
 --default_root_dir ${OUTPUT_DIR} \
 --enable_leave_label_out \
---num_of_left_label ${NUM_LEAVE_OUT_LABEL} \
---loss_name kfolden
+--num_of_left_label ${NUM_LEAVE_OUT_LABEL}
 

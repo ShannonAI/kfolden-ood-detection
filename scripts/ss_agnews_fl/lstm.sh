@@ -17,6 +17,7 @@ OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}
 
 mkdir -p ${OUTPUT_DIR}
 
+DATA_NAME=agnews_fl
 DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/20news_6s
 VOCAB_FILE=/data/lixiaoya/datasets/confidence/embeddings/glove.6B.300d_vocab_400002.txt
 LOG_FILE=${OUTPUT_DIR}/train_log.txt
@@ -47,6 +48,7 @@ POOLING=max_pool
 
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --default_root ${OUTPUT_DIR} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \
 --val_check_interval ${VAL_CHECK_INTERVAL} \

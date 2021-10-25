@@ -15,8 +15,10 @@ set_random_seed(2333)
 
 from transformers import AutoTokenizer
 from data.datasets.label_fields import get_labels
+from data.datasets.nn_doc_dataset import NNDocDataset
 from data.datasets.plm_doc_dataset import PLMDocDataset
-from data.datasets.collate_functions import collate_plm_to_max_length
+from data.datasets.collate_functions import collate_plm_to_max_length, collate_nn_to_max_length
+from task.train_nn import TrainNNTask
 from task.finetune_plm import FinetunePLMTask
 from metrics.metric_funcs import get_fpr_95, get_auroc
 

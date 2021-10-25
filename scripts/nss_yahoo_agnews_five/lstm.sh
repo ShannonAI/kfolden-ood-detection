@@ -25,6 +25,8 @@ VOCAB_SIZE=400002
 EMB_SIZE=300
 MODEL=rnn
 
+DATA_NAME=yahoo_agnews_five
+
 MAX_LEN=128
 EPOCH=20
 OPTIM=torch.adam
@@ -47,6 +49,7 @@ POOLING=max_pool
 
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --default_root ${OUTPUT_DIR} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \
 --val_check_interval ${VAL_CHECK_INTERVAL} \

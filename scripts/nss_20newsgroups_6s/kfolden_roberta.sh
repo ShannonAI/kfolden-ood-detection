@@ -15,6 +15,8 @@ TRAIN_BATCH_SIZE=36
 EVAL_BATCH_SIZE=12
 MAX_LENGTH=256
 
+DATA_NAME=20news_6s
+
 OPTIMIZER=torch.adam
 LR_SCHEDULE=linear
 LR=3e-5
@@ -40,6 +42,7 @@ mkdir -p ${OUTPUT_DIR}
 
 CUDA_VISIBLE_DEVICES=4 python ${REPO_PATH}/task/finetune_plm.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --precision=${PRECISION} \
 --train_batch_size ${TRAIN_BATCH_SIZE} \
 --eval_batch_size ${EVAL_BATCH_SIZE} \

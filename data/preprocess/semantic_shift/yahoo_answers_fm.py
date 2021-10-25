@@ -10,6 +10,7 @@ import argparse
 import collections
 from utils.random_seed import set_random_seed
 set_random_seed(2333)
+from data.data_utils.clean_text import tokenize_and_clean_text_str
 
 YahooAnswers = collections.namedtuple("YahooAnswers",["data_type", "topic", "question_title", "question_content", "best_answer"])
 
@@ -101,16 +102,17 @@ def save_id_ood_data(save_data_dir, data_file_name, data_object_dict):
     data_file_path = os.path.join(save_data_dir, data_file_name)
     data_counter = 0
     with open(data_file_path, mode="w", encoding="utf-8", newline="\n") as w_csv_file:
-        fieldnames = ['question_title', 'question_content', 'best_answer', 'label']
+        fieldnames = ['label', 'data']
         writer = csv.DictWriter(w_csv_file, fieldnames=fieldnames)
         writer.writeheader()
         for data_obj_key in data_object_dict.keys():
             for data_item in data_object_dict[data_obj_key]:
                 data_counter += 1
-                writer.writerow({'question_title': repr(data_item.question_title),
-                                 'question_content': repr(data_item.question_content),
-                                 'best_answer': repr(data_item.best_answer),
-                                 'label': data_item.topic,})
+                cleaned_title = tokenize_and_clean_text_str(data_item.question_title)
+                cleaned_desc = tokenize_and_clean_text_str(data_item.question_content)
+                text_content = cleaned_title + " " + cleaned_desc
+                writer.writerow({'label': data_item.topic,
+                                 'data': repr(text_content)})
 
     print(f">>> save file to : {data_file_path}")
     print(f">>> the number of record is : {data_counter}")

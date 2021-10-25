@@ -3,12 +3,12 @@
 
 # file: yahoo_agnews_five.sh
 
-REPO_PATH=/data/xiaoya/workspace/kfolden_ood_detection
+REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
-YAHOO_ANSWERS_DIR=/data/xiaoya/datasets/confidence/yahoo_answers/yahoo_answers_csv
-AGCORPUS_FILE=/data/xiaoya/datasets/confidence/agnews/newsspace200.xml
-SAVE_DATA_DIR=/data/xiaoya/datasets/kfolden_ood_detection/yahoo_agnews_five
+YAHOO_ANSWERS_DIR=/data/lixiaoya/datasets/confidence/yahoo_answers/yahoo_answers_csv
+AGCORPUS_FILE=/data/lixiaoya/datasets/confidence/agnews/newsspace200.xml
+SAVE_DATA_DIR=/data/lixiaoya/datasets/kfolden/yahoo_agnews_five
 
 mkdir -p ${SAVE_DATA_DIR}
 

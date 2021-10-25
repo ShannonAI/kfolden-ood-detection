@@ -51,33 +51,27 @@ def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_len
     if data_sign == "agnews_ext":
         # data_type,topic,title,description
         batch_encoding = tokenizer([
-            f"{example['title']} {example['description']}" for example in data_example_lst],
-            max_length=max_length, padding="max_length", truncation=True)
+            f"{example['data']}" for example in data_example_lst], max_length=max_length, padding="max_length", truncation=True)
     elif data_sign == "20news_6s":
         # merge_label,data,label
         batch_encoding = tokenizer([
-            example["data"] for example in data_example_lst],
-            max_length=max_length, padding="max_length", truncation=True)
+            example["data"] for example in data_example_lst], max_length=max_length, padding="max_length", truncation=True)
     elif data_sign == "yahoo_agnews_five":
         # label,title,description
         batch_encoding = tokenizer([
-            f"{example['title']} {example['description']}" for example in data_example_lst],
-            max_length=max_length, padding="max_length", truncation=True)
+            f"{example['data']}" for example in data_example_lst], max_length=max_length, padding="max_length", truncation=True)
     elif data_sign == "agnews_fl":
         # label,title,description
         batch_encoding = tokenizer([
-            f"{example['title']} {example['description']}" for example in data_example_lst],
-            max_length=max_length, padding="max_length", truncation=True)
+            f"{example['data']}" for example in data_example_lst], max_length=max_length, padding="max_length", truncation=True)
     elif data_sign == "agnews_fm":
         # label,title,description
         batch_encoding = tokenizer([
-            f"{example['title']} {example['description']}" for example in data_example_lst],
-            max_length=max_length, padding="max_length", truncation=True)
+            f"{example['data']}" for example in data_example_lst], max_length=max_length, padding="max_length", truncation=True)
     elif data_sign == "yahoo_answers_fm":
         # title,content,best_answer,label
         batch_encoding = tokenizer([
-            f"{example['title']} {example['content']}" for example in data_example_lst],
-            max_length=max_length, padding="max_length", truncation=True)
+            f"{example['data']}" for example in data_example_lst], max_length=max_length, padding="max_length", truncation=True)
     else:
         raise ValueError("ERROR : NOT Existing data signature... ...")
 
@@ -94,7 +88,7 @@ def convert_examples_to_features(data_sign, data_example_lst, tokenizer, max_len
     all_label = torch.tensor([f.label for f in features], dtype=torch.long)
 
     dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_label)
-    return features, dataset
+    return features, dataset, label_map
 
 
 

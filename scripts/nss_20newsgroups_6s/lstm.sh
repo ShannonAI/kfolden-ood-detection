@@ -7,6 +7,8 @@ TIME_SIGN=2021.10.21
 FILE_NAME=nss_20news_6s_lstm
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 
+DATA_NAME=20news_6s
+
 PRECISION=32
 PROGRESS_BAR=1
 VAL_CHECK_INTERVAL=0.25
@@ -47,6 +49,7 @@ POOLING=max_pool
 
 CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
+--data_name ${DATA_NAME} \
 --default_root ${OUTPUT_DIR} \
 --progress_bar_refresh_rate ${PROGRESS_BAR} \
 --val_check_interval ${VAL_CHECK_INTERVAL} \
