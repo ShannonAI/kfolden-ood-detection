@@ -5,6 +5,8 @@
 
 import os
 import re
+import sys
+import csv
 import argparse
 import logging
 from collections import namedtuple
@@ -15,6 +17,7 @@ from utils.get_parser import get_plm_parser
 # https://github.com/PyTorchLightning/pytorch-lightning/issues/2757
 import warnings
 warnings.filterwarnings('ignore')
+csv.field_size_limit(sys.maxsize)
 
 import torch
 import torch.nn.functional as F
@@ -35,7 +38,7 @@ from models.model_config import BertForSequenceClassificationConfig
 
 
 class FinetunePLMTask(pl.LightningModule):
-    def __init__(self, args: argparse.Namespace, keep_label_lst, save_output_dir=""):
+    def __init__(self, args: argparse.Namespace, keep_label_lst="", save_output_dir=""):
         """initialize a model, tokenizer and config."""
         super().__init__()
         if isinstance(args, argparse.Namespace):
@@ -50,9 +53,9 @@ class FinetunePLMTask(pl.LightningModule):
         self.num_classes = len(keep_label_lst)
         self.save_output_dir = save_output_dir
         self.loss_name = self.args.loss_name
-        self.model_path = args.bert_config_dir
-        self.data_dir = args.data_dir
-        self.optimizer = args.optimizer
+        self.model_path = self.args.bert_config_dir
+        self.data_dir = self.args.data_dir
+        self.optimizer = self.args.optimizer
         self.train_batch_size = self.args.train_batch_size
         self.eval_batch_size = self.args.eval_batch_size
 
@@ -249,7 +252,7 @@ def find_best_checkpoint_on_dev(output_dir: str, path_prefix: str, log_file: str
 
 def finetune_model(args, save_output_dir, keep_label_lst):
 
-    task_model = FinetunePLMTask(args, keep_label_lst, save_output_dir=save_output_dir)
+    task_model = FinetunePLMTask(args, keep_label_lst=keep_label_lst, save_output_dir=save_output_dir)
     if len(args.pretrained_checkpoint) > 1:
         task_model.load_state_dict(torch.load(args.pretrained_checkpoint, map_location=torch.device("cpu"))["state_dict"])
 

@@ -6,6 +6,8 @@
 
 import os
 import re
+import sys
+import csv
 import argparse
 import logging
 from collections import namedtuple
@@ -15,6 +17,7 @@ set_random_seed(2333)
 # https://github.com/PyTorchLightning/pytorch-lightning/issues/2757
 import warnings
 warnings.filterwarnings('ignore')
+csv.field_size_limit(sys.maxsize)
 
 import torch
 import torch.nn.functional as F
