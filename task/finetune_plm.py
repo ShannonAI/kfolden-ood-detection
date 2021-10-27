@@ -11,7 +11,6 @@ import argparse
 import logging
 from collections import namedtuple
 from utils.random_seed import set_random_seed
-set_random_seed(2333)
 from utils.get_parser import get_plm_parser
 
 # https://github.com/PyTorchLightning/pytorch-lightning/issues/2757
@@ -33,8 +32,8 @@ from pytorch_lightning.callbacks.model_checkpoint import ModelCheckpoint
 from data.datasets.label_fields import get_labels
 from data.datasets.plm_doc_dataset import PLMDocDataset
 from data.datasets.collate_functions import collate_plm_to_max_length
-from models.plm import BertForSequenceClassification
-from models.model_config import BertForSequenceClassificationConfig
+from models.plm import BertForSequenceClassification, RobertaForSequenceClassification
+from models.model_config import BertForSequenceClassificationConfig, RobertaForSequenceClassificationConfig
 
 
 class FinetunePLMTask(pl.LightningModule):
@@ -59,10 +58,17 @@ class FinetunePLMTask(pl.LightningModule):
         self.train_batch_size = self.args.train_batch_size
         self.eval_batch_size = self.args.eval_batch_size
 
-        bert_config = BertForSequenceClassificationConfig.from_pretrained(self.model_path, num_labels=self.num_classes,
-                                                                          hidden_dropout_prob=self.args.hidden_dropout_prob,)
+        if args.model_type == "bert":
+            bert_config = BertForSequenceClassificationConfig.from_pretrained(self.model_path, num_labels=self.num_classes,
+                                                                              hidden_dropout_prob=self.args.hidden_dropout_prob,)
+            self.model = BertForSequenceClassification.from_pretrained(self.model_path, config=bert_config)
+        elif args.model_type == "roberta":
+            roberta_config = RobertaForSequenceClassificationConfig.from_pretrained(self.model_path, num_labels=self.num_classes,
+                                                                                    hidden_dropout_prob=self.args.hidden_dropout_prob,)
+            self.model = RobertaForSequenceClassification.from_pretrained(self.model_path, config=roberta_config)
+        else:
+            raise ValueError
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, use_fast=False, do_lower_case=self.args.do_lower_case)
-        self.model = BertForSequenceClassification.from_pretrained(self.model_path, config=bert_config)
 
         self.result_logger = logging.getLogger(__name__)
         self.result_logger.setLevel(logging.INFO)
@@ -73,7 +79,10 @@ class FinetunePLMTask(pl.LightningModule):
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
+        parser.add_argument("--model_type", type=str, default="bert")
         parser.add_argument("--data_name", type=str, default="20news_6s", help=" The name of the task to  train.")
+        parser.add_argument("--model_scale", type=str, default="single", choices=["kfolden", "single", "ensemble"])
+        parser.add_argument("--num_of_ensemble", type=int, default=0)
         parser.add_argument("--loss_name", type=str, default="ce", help=" The name of the task to  train.")
         parser.add_argument("--pad_to_max_length", action="store_false", help="Whether to pad all samples to ' max_seq_length'.")
         return parser
@@ -286,6 +295,7 @@ def save_label_to_file(label_lst, label_file):
             f.write(f"{label_item}\n")
 
 def main():
+    set_random_seed(2333)
     parser = get_plm_parser()
     parser = FinetunePLMTask.add_model_specific_args(parser)
     parser = Trainer.add_argparse_args(parser)
@@ -309,13 +319,37 @@ def main():
             print(f">>> target labels:  {keep_label_lst}")
             finetune_model(args, sub_output_dir, keep_label_lst)
     else:
-        print("$"*30)
-        print(f">>> ENABLE ALL LABEL TRAINING ...")
-        print(f">>> target labels:  {full_label_lst}")
-        os.makedirs(args.output_dir, exist_ok=True)
-        os.system(f"chmod -R 777 {args.output_dir}")
-        save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
-        finetune_model(args, args.output_dir, full_label_lst,)
+        if args.model_scale == "single":
+            print("$"*30)
+            print(f">>> ENABLE ALL LABEL TRAINING ...")
+            print(f">>> target labels:  {full_label_lst}")
+            os.makedirs(args.output_dir, exist_ok=True)
+            os.system(f"chmod -R 777 {args.output_dir}")
+            save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
+            finetune_model(args, args.output_dir, full_label_lst,)
+        elif args.model_scale == "ensemble":
+            if args.num_of_ensemble == 0:
+                num_of_ensemble = len(full_label_lst)
+            else:
+                num_of_ensemble = args.num_of_ensemble
+
+            for iteration_idx in range(num_of_ensemble):
+                set_random_seed(2334+iteration_idx)
+                args.seed = 2334+iteration_idx
+                print("$" * 30)
+                print(f"seed in args: {args.seed}; seed in torch: {torch.initial_seed()}")
+                print(f">>> ENABLE ALL LABEL TRAINING ...")
+                print(f">>> target labels:  {full_label_lst}")
+                sub_output_dir = os.path.join(args.output_dir, f"{iteration_idx}")
+                os.makedirs(sub_output_dir, exist_ok=True)
+                os.system(f"chmod -R 777 {sub_output_dir}")
+                with open(os.path.join(sub_output_dir, "seed.txt"), "w") as f:
+                    f.write(f"torch seed: {torch.initial_seed()}")
+                    f.write(f"args seed: {args.seed}")
+                finetune_model(args, sub_output_dir, full_label_lst)
+        else:
+            raise ValueError("Please append --enable_leave_label_out in you command . ")
+
 
 
 if __name__ == "__main__":

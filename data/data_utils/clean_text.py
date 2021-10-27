@@ -6,11 +6,12 @@
 import re
 import os
 
-def tokenize_and_clean_text_str(string, TREC=False):
+def tokenize_and_clean_text_str(string, TREC=False, lower_case=False):
     """
     code from: https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
     Tokenization/string cleaning for all datasets except for SST.
     Every dataset is lower cased except for TREC
+    # Roberta is case-sensitive.
     """
     string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
     string = re.sub(r"\'s", " \'s", string)
@@ -25,7 +26,10 @@ def tokenize_and_clean_text_str(string, TREC=False):
     string = re.sub(r"\)", " \) ", string)
     string = re.sub(r"\?", " \? ", string)
     string = re.sub(r"\s{2,}", " ", string)
-    return string.strip() if TREC else string.strip().lower()
+    if lower_case:
+        return string.strip() if TREC else string.strip().lower()
+    else:
+        return string.strip() if TREC else string.strip()
 
 def clean_20newsgroup_data(data_item, remove=["headers", "footers", "quotes"], merge_doc=True):
     if "headers" in remove:

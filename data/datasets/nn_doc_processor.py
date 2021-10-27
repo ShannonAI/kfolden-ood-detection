@@ -7,7 +7,7 @@ import os
 import csv
 from collections import namedtuple
 
-from data.data_utils.clean_text import remove_stop_and_lowfreq_words_func, clean_20newsgroup_data, tokenize_and_clean_text_str
+from data.data_utils.clean_text import tokenize_and_clean_text_str
 
 DocDataFeature = namedtuple("DocDataFeature", ["input_ids", "token_mask", "label"])
 
@@ -47,7 +47,12 @@ def convert_examples_to_features(data_sign, data_example_lst, vocab_file, max_se
         vocab_token2idx[vocab_item] = vocab_idx
 
     label_map = {label: i for i, label in enumerate(keep_label_lst)}
-    labels = [label_map[example["label"]] if example["label"] in keep_label_lst else ignore_index for example in data_example_lst]
+    labels = []
+    for example in data_example_lst:
+        if example["label"] in keep_label_lst:
+            labels.append(label_map[example["label"]])
+        else:
+            labels.append(ignore_index)
 
     features = []
     for data_idx, data_example in enumerate(data_example_lst):
@@ -55,6 +60,8 @@ def convert_examples_to_features(data_sign, data_example_lst, vocab_file, max_se
         data_content_str = data_example["data"]
         # clean data string, following https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
         data_content_str = tokenize_and_clean_text_str(data_content_str)
+        if do_lowercase:
+            data_content_str = data_content_str.lower()
         data_content_tokens = data_content_str.split(" ")
 
         for data_token in data_content_tokens:

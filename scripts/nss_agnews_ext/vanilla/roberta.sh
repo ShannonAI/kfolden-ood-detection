@@ -3,15 +3,19 @@
 
 # roberta.sh
 
-TIME_SIGN=2021.10.21
-FILE_NAME=nss_20news_6s_roberta
+TIME_SIGN=2021.10.27
+SCRIPT_SIGN=vanilla
+FILE_NAME=nss_agnews_ext_${SCRIPT_SIGN}_roberta
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
 
-MODEL_SCALE=base
+LOSS_NAME=ce
+DATA_NAME=agnews_ext
+MODEL_SCALE=single
+MODEL_TYPE=roberta
 BERT_DIR=/data/lixiaoya/models/roberta-large
-DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/20news_6s
+DATA_DIR=/data/lixiaoya/datasets/kfolden/agnews_ext
 
-TRAIN_BATCH_SIZE=36
+TRAIN_BATCH_SIZE=12
 EVAL_BATCH_SIZE=12
 MAX_LENGTH=256
 
@@ -26,14 +30,12 @@ GRAD_CLIP=1.0
 WEIGHT_DECAY=0.002
 WARMUP_PROPORTION=0.1
 
-DATA_NAME=agnews_ext
-
-PRECISION=16
+PRECISION=32
 PROGRESS_BAR=1
 VAL_CHECK_INTERVAL=0.25
 export PYTHONPATH="$PYTHONPATH:${REPO_PATH}"
 
-OUTPUT_BASE_DIR=/data/lixiaoya/outputs/kfolden
+OUTPUT_BASE_DIR=/data/lixiaoya/outputs/kfolden_outputs
 OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}_${MODEL_SCALE}_${TRAIN_BATCH_SIZE}_${MAX_LENGTH}_${LR}_${LR_SCHEDULE}_${BERT_DROPOUT}_${ACC_GRAD}_${MAX_EPOCH}_${GRAD_CLIP}_${WEIGHT_DECAY}_${WARMUP_PROPORTION}_${LOSS_SIGN}
 
 mkdir -p ${OUTPUT_DIR}
@@ -59,4 +61,7 @@ CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/finetune_plm.py \
 --max_epochs ${MAX_EPOCH} \
 --gradient_clip_val ${GRAD_CLIP} \
 --weight_decay ${WEIGHT_DECAY} \
---warmup_proportion ${WARMUP_PROPORTION}
+--warmup_proportion ${WARMUP_PROPORTION} \
+--loss_name ${LOSS_NAME} \
+--model_scale ${MODEL_SCALE} \
+--model_type ${MODEL_TYPE}

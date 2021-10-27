@@ -89,14 +89,16 @@ class TrainNNTask(pl.LightningModule):
         self.metric_accuracy = pl.metrics.Accuracy(num_classes=self.num_classes)
         self.num_gpus = 1
         self.pytorch_total_params = sum(p.numel() for p in self.model.parameters())
-        self.result_logger.write(f"INFO -> NUMBER OF PARAMS {self.pytorch_total_params}")
+        self.result_logger.info(f"INFO -> NUMBER OF PARAMS {self.pytorch_total_params}")
 
     @staticmethod
     def add_model_specific_args(parent_parser):
         parser = argparse.ArgumentParser(parents=[parent_parser], add_help=False)
         parser.add_argument("--data_name", type=str, default="20news_6s", help=" The name of the task to  train.")
         parser.add_argument("--loss_name", type=str, default="ce", help=" The name of the task to  train.")
-        parser.add_argument("--model_type", type=str, default="bert")
+        parser.add_argument("--model_type", type=str, default="cnn")
+        parser.add_argument("--num_of_ensemble", type=int, default=0)
+        parser.add_argument("--model_scale", type=str, default="single", choices=["kfolden", "single", "ensemble"])
         parser = add_basic_configurations(parser)
         parser = add_rnn_configurations(parser)
         parser = add_cnn_configurations(parser)
@@ -115,11 +117,7 @@ class TrainNNTask(pl.LightningModule):
                 "weight_decay": 0.0,
             },
         ]
-        if self.optimizer == "adamw":
-            optimizer = AdamW(optimizer_grouped_parameters,
-                              betas=(0.9, 0.999),  # according to RoBERTa paper
-                              lr=self.args.lr, eps=self.args.adam_epsilon, )
-        elif self.optimizer == "torch.adam":
+        if self.optimizer == "torch.adam":
             # revisiting few-sample BERT Fine-tuning https://arxiv.org/pdf/2006.05987.pdf
             # https://github.com/asappresearch/revisit-bert-finetuning/blob/master/run_glue.py
             optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=self.args.lr,
@@ -199,8 +197,8 @@ class TrainNNTask(pl.LightningModule):
         tensorboard_logs = {"val_loss": avg_loss}
         tensorboard_logs[f"acc"] = avg_acc
 
-        self.result_logger.write(f"EVAL INFO -> current_epoch is: {self.trainer.current_epoch}, current_global_step is: {self.trainer.global_step} \n")
-        print(f"EVAL INFO -> current_epoch is: {self.trainer.current_epoch}, val_acc is: {avg_acc} \n")
+        self.result_logger.info(f"EVAL INFO -> current_epoch is: {self.trainer.current_epoch}, current_global_step is: {self.trainer.global_step} \n")
+        print(f"EVAL INFO -> current_epoch is: {self.trainer.current_epoch}, val_acc is: {avg_acc}")
         return {"val_loss": avg_loss, "val_log": tensorboard_logs, "val_acc": avg_acc}
 
     def test_step(self, batch, batch_idx):
@@ -216,7 +214,7 @@ class TrainNNTask(pl.LightningModule):
         tensorboard_logs = {}
         avg_acc = torch.stack([x["test_acc"] for x in outputs]).mean() / self.num_gpus
         tensorboard_logs[f"test_acc"] = avg_acc
-        self.result_logger.write(f"TEST INFO -> test_acc is: {avg_acc} \n")
+        self.result_logger.info(f"TEST INFO -> test_acc is: {avg_acc}")
 
         return {"test_log": tensorboard_logs, "test_acc": avg_acc}
 
@@ -346,13 +344,35 @@ def main():
             print(f">>> target labels:  {keep_label_lst}")
             train_model(args, sub_output_dir, keep_label_lst=keep_label_lst)
     else:
-        print("$" * 30)
-        print(f">>> ENABLE ALL LABEL TRAINING ...")
-        print(f">>> target labels:  {full_label_lst}")
-        os.makedirs(args.output_dir, exist_ok=True)
-        os.system(f"chmod -R 777 {args.output_dir}")
-        save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
-        train_model(args, args.output_dir, keep_label_lst=full_label_lst)
+        if args.model_scale == "single":
+            print("$" * 30)
+            print(f">>> ENABLE ALL LABEL TRAINING ...")
+            print(f">>> target labels:  {full_label_lst}")
+            os.makedirs(args.output_dir, exist_ok=True)
+            os.system(f"chmod -R 777 {args.output_dir}")
+            save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
+            train_model(args, args.output_dir, keep_label_lst=full_label_lst)
+        elif args.model_scale == "ensemble":
+            if args.num_of_ensemble == 0:
+                num_of_ensemble = len(full_label_lst)
+            else:
+                num_of_ensemble = args.num_of_ensemble
+            for iteration_idx in range(num_of_ensemble):
+                set_random_seed(2334+iteration_idx)
+                args.seed = 2334+iteration_idx
+                print("$" * 30)
+                print(f"seed in args: {args.seed}; seed in torch: {torch.initial_seed()}")
+                print(f">>> ENABLE ALL LABEL TRAINING ...")
+                print(f">>> target labels:  {full_label_lst}")
+                sub_output_dir = os.path.join(args.output_dir, f"{iteration_idx}")
+                os.makedirs(sub_output_dir, exist_ok=True)
+                os.system(f"chmod -R 777 {sub_output_dir}")
+                with open(os.path.join(sub_output_dir, "seed.txt"), "w") as f:
+                    f.write(f"torch seed: {torch.initial_seed()}")
+                    f.write(f"args seed: {args.seed}")
+                train_model(args, sub_output_dir, keep_label_lst=full_label_lst)
+        else:
+            raise ValueError("Please append --enable_leave_label_out in you command . ")
 
 
 if __name__ == "__main__":

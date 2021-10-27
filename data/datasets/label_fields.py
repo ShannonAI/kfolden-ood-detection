@@ -9,6 +9,11 @@ def get_labels(data_sign, dist_sign="id"):
         if dist_sign == "id":
             return ["World", "Sports", "Business", "Sci/Tech"]
         return ["World", "Sports", "Business", "Sci/Tech"]
+    elif data_sign == "reuters_mk_nl":
+        # default is Reuters-7K-3L
+        if dist_sign == "id":
+            return ["Acq", "Corn", "Earn", "Grain", "Interest", "Money-fx", "Ship"]
+        return ["Crude", "Trade", "Wheat"]
     elif data_sign == "20news_6s":
         if dist_sign == "id":
             return ["comp", "rec", "sci", "religion", "politics", "misc"]
