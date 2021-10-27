@@ -44,7 +44,6 @@ def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="argument parser")
     parser.add_argument("--seed", type=int, default=2333)
     parser.add_argument("--data_dir", type=str, help="data dir")
-    parser.add_argument("--allow_ood_data", action="store_true")
     parser.add_argument("--vocab_file", type=str, default="vocab.txt")
     parser.add_argument("--train_batch_size", type=int, default=32, help="batch size for train dataloader")
     parser.add_argument("--eval_batch_size", type=int, default=1, help="batch size for eval dataloader")
@@ -58,6 +57,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--do_lower_case", action="store_true", help="Set this flag if you are using an uncased model.")
 
     parser.add_argument("--enable_leave_label_out", action="store_true", help="leave label out")
+    parser.add_argument("--lambda_loss", type=float, default=0.2, )
     parser.add_argument("--num_of_left_label", default=0, type=int, help="number of labels as ood data distribution")
 
     parser.add_argument("--optimizer", default="adamw", help="optimizer type")
@@ -68,7 +68,6 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--adam_epsilon", default=1e-6, type=float, help="Epsilon for Adam optimizer.")
     parser.add_argument("--max_keep_ckpt", default=20, type=int, help="the number of keeping ckpt max.")
     parser.add_argument("--output_dir", default="/data", type=str, help="the directory to save model outputs")
-    parser.add_argument("--log_file", default="train_log.txt", type=str, )
     parser.add_argument("--overwrite_cache", action="store_true", help="Overwrite the cached training and evaluation sets")
     parser.add_argument("--cache_dir", default="", type=str, help="Where do you want to store the pre-trained models downloaded from s3", )
     parser.add_argument("--final_div_factor", type=float, default=1e4, help="final div factor of linear decay scheduler")
