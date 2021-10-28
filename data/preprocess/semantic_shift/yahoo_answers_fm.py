@@ -15,7 +15,7 @@ from data.data_utils.clean_text import tokenize_and_clean_text_str
 YahooAnswers = collections.namedtuple("YahooAnswers",["data_type", "topic", "question_title", "question_content", "best_answer"])
 
 
-def load_yahoo_answers_data(data_dir):
+def load_yahoo_answers_data(data_dir, num_data_in_dev_per_label=4000):
     label_file = os.path.join(data_dir, "classes.txt")
     with open(label_file, "r") as f:
         idx_to_label_dict = {str(label_idx+1): label_item.strip() for label_idx, label_item in enumerate(f.readlines())}
@@ -42,7 +42,7 @@ def load_yahoo_answers_data(data_dir):
 
     for key_item in train_dev_obj_dict.keys():
         num_obj_in_train = len(train_dev_obj_dict[key_item])
-        num_obj_in_dev = int(0.1 * num_obj_in_train)
+        num_obj_in_dev = num_data_in_dev_per_label
         obj_index_lst = [idx for idx in range(0, num_obj_in_train)]
         obj_idx_for_dev = random.sample(obj_index_lst, num_obj_in_dev)
         obj_idx_for_train = list(set(obj_index_lst) - set(obj_idx_for_dev))
@@ -72,10 +72,26 @@ def load_yahoo_answers_data(data_dir):
     for test_key, test_value in test_obj_dict.items():
         print(f"\t {test_key}: {len(test_value)}")
     print("#" * 10)
-
     return train_obj_dict, dev_obj_dict, test_obj_dict
 
+def get_id_and_ood_data_statisic():
+    data_label = {
+        "ood_test_per_label": 5000,
+        "ood_test": 25000,
+        "id_test_per_label": 5000,
+        "id_test": 20000,
+        "ood_dev_per_label": 4000,
+        "ood_dev": 25000,
+        "id_dev_per_label": 4000,
+        "id_dev": 20000,
+        "train_per_label": 136000,
+        "train": 680000
+    }
+    return data_label
+
 def split_id_ood_distribution_strategy(yahoo_train_obj_dict, yahoo_dev_obj_dict, yahoo_test_obj_dict):
+    data_statistic_dict = get_id_and_ood_data_statisic()
+
     id_topic_yahoo = ["Health", "Science & Mathematics", "Sports", "Entertainment & Music", "Business & Finance"]
     # ID: "Health", "Science & Mathematics", "Sports", "Entertainment & Music", "Business & Finance"
     ood_topic_yahoo = ["Society & Culture", "Education & Reference", "Computers & Internet", "Family & Relationships", "Politics & Government"]
@@ -84,13 +100,21 @@ def split_id_ood_distribution_strategy(yahoo_train_obj_dict, yahoo_dev_obj_dict,
     train_in_dist_dict, dev_in_dist_dict, test_in_dist_dict, dev_out_of_dist_dict, test_out_of_dist_dict = {}, {}, {}, {}, {}
 
     for id_topic_item in id_topic_yahoo:
+        num_obj_in_test = data_statistic_dict["id_test_per_label"]
+        test_candidate_index_lst = [idx for idx in range(len(yahoo_test_obj_dict[id_topic_item]))]
+        id_test_obj_index = random.sample(test_candidate_index_lst, num_obj_in_test)
+
         train_in_dist_dict[id_topic_item] = yahoo_train_obj_dict[id_topic_item]
         dev_in_dist_dict[id_topic_item] = yahoo_dev_obj_dict[id_topic_item]
-        test_in_dist_dict[id_topic_item] = yahoo_test_obj_dict[id_topic_item]
+        test_in_dist_dict[id_topic_item] = [yahoo_test_obj_dict[id_topic_item][idx] for idx in id_test_obj_index]
 
     for ood_topic_item in ood_topic_yahoo:
+        num_obj_in_test = data_statistic_dict["ood_test_per_label"]
+        test_candidate_index_lst = [idx for idx in range(len(yahoo_test_obj_dict[ood_topic_item]))]
+        id_test_obj_index = random.sample(test_candidate_index_lst, num_obj_in_test)
+
         dev_out_of_dist_dict[ood_topic_item] = yahoo_dev_obj_dict[ood_topic_item]
-        test_out_of_dist_dict[ood_topic_item] = yahoo_test_obj_dict[ood_topic_item]
+        test_out_of_dist_dict[ood_topic_item] = [yahoo_test_obj_dict[ood_topic_item][idx] for idx in id_test_obj_index]
 
     return train_in_dist_dict, dev_in_dist_dict, test_in_dist_dict, dev_out_of_dist_dict, test_out_of_dist_dict
 
@@ -125,7 +149,6 @@ def get_argument_parser():
     parser.add_argument("--save_original_data_to_csv", action="store_true")
 
     return parser
-
 
 def main():
     parser = get_argument_parser()

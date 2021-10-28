@@ -25,8 +25,6 @@ OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}_${MODEL_SCALE}_${TRAIN_B
 mkdir -p ${OUTPUT_DIR}
 
 # eval model performance on in-distribution test dataset
-ID_SIGN=id
-echo "ID PERFORMANCE"
 CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/evaluate_plm_model.py \
 --gpus="1" \
 --data_name ${DATA_NAME} \
@@ -36,22 +34,6 @@ CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/evaluate_plm_model.py \
 --bert_config_dir ${BERT_DIR} \
 --default_root_dir ${OUTPUT_DIR} \
 --enable_leave_label_out \
---num_of_left_label ${NUM_LEAVE_OUT_LABEL} \
---data_distribution ${ID_SIGN}
+--num_of_left_label ${NUM_LEAVE_OUT_LABEL}
 
-
-# eval model performance on out-of-distribution test dataset
-ID_SIGN=ood
-echo "OOD PERFORMANCE"
-CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/evaluate_plm_model.py \
---gpus="1" \
---data_name ${DATA_NAME} \
---eval_batch_size ${EVAL_BATCH_SIZE} \
---max_length ${MAX_LENGTH} \
---data_dir ${DATA_DIR} \
---bert_config_dir ${BERT_DIR} \
---default_root_dir ${OUTPUT_DIR} \
---enable_leave_label_out \
---num_of_left_label ${NUM_LEAVE_OUT_LABEL} \
---data_distribution ${ID_SIGN}
 

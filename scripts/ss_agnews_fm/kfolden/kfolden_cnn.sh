@@ -32,7 +32,7 @@ INIT_EMBEDDING=/data/lixiaoya/datasets/confidence/embeddings/glove.6B.300d.npy
 VOCAB_SIZE=400002
 EMB_SIZE=300
 
-MAX_LEN=256
+MAX_LEN=384
 PAD_IDX=0
 EPOCH=20
 OPTIM=torch.adam

@@ -16,7 +16,7 @@ AGNews = collections.namedtuple("AGNews",["name", "data_type", "topic", "title",
 AGCorpus = collections.namedtuple("AGCorpus",["name", "topic", "title", "description"])
 
 
-def load_agnews_data(data_dir):
+def load_agnews_data(data_dir, num_data_in_dev_per_label=1000):
     label_file = os.path.join(data_dir, "classes.txt")
     with open(label_file, "r") as f:
         idx_to_label_dict = {str(label_idx + 1): label_item.strip() for label_idx, label_item in
@@ -43,7 +43,7 @@ def load_agnews_data(data_dir):
 
     for key_item in train_dev_obj_dict.keys():
         num_obj = len(train_dev_obj_dict[key_item])
-        num_obj_in_dev = int(0.1 * num_obj)
+        num_obj_in_dev = num_data_in_dev_per_label
         obj_index_lst = [idx for idx in range(0, num_obj)]
         obj_idx_for_dev = random.sample(obj_index_lst, num_obj_in_dev)
         obj_idx_for_train = list(set(obj_index_lst) - set(obj_idx_for_dev))
@@ -94,9 +94,32 @@ def load_agcorpus_data(data_file):
             data_obj_dict[tmp_category] = [tmp_agcorpus_obj]
         else:
             data_obj_dict[tmp_category].append(tmp_agcorpus_obj)
+
+    print("#" * 10)
+    print("> check data in AG-Corpus :")
+    for data_key, data_value in data_obj_dict.items():
+        print(f"\t {data_key}: {len(data_value)}")
+    print("#" * 10)
     return data_obj_dict
 
+def get_id_and_ood_data_statisic():
+    data_label = {
+        "ood_test_per_label": 1000,
+        "ood_test": 4000,
+        "id_test_per_label": 1000,
+        "id_test": 4000,
+        "ood_dev_per_label": 1000,
+        "ood_dev": 4000,
+        "id_dev_per_label": 1000,
+        "id_dev": 4000,
+        "train_per_label": 29000,
+        "train":  116000
+    }
+    return data_label
+
 def split_id_ood_distribution_strategy(agnews_train_obj_dict, agnews_dev_obj_dict, agnews_test_obj_dict, agcorpus_obj_dict):
+    data_statistic_dict = get_id_and_ood_data_statisic()
+
     id_topic_agnews = ["World", "Sports", "Business", "Sci/Tech"]
     # ID: "World", "Sports", "Business", "Sci/Tech"
     ood_topic_agcorpus = ["Entertainment", "Health", "Top Stories", "Music Feeds"]
@@ -105,13 +128,17 @@ def split_id_ood_distribution_strategy(agnews_train_obj_dict, agnews_dev_obj_dic
     train_in_dist_dict, dev_in_dist_dict, test_in_dist_dict, dev_out_of_dist_dict, test_out_of_dist_dict = {}, {}, {}, {}, {}
 
     for id_topic_item in id_topic_agnews:
+        num_obj_in_test = data_statistic_dict["id_test_per_label"]
+        test_candidate_index_lst = [idx for idx in range(len(agnews_test_obj_dict[id_topic_item]))]
+        id_test_obj_index = random.sample(test_candidate_index_lst, num_obj_in_test)
+
         train_in_dist_dict[id_topic_item] = agnews_train_obj_dict[id_topic_item]
         dev_in_dist_dict[id_topic_item] = agnews_dev_obj_dict[id_topic_item]
-        test_in_dist_dict[id_topic_item] = agnews_test_obj_dict[id_topic_item]
+        test_in_dist_dict[id_topic_item] = [agnews_test_obj_dict[id_topic_item][idx] for idx in id_test_obj_index]
 
     for ood_topic_idx, ood_topic_item in enumerate(ood_topic_agcorpus):
-        num_obj_in_dev = min(len(dev_in_dist_dict[id_topic_agnews[ood_topic_idx]]), int(len(agcorpus_obj_dict[ood_topic_item]) / 2))
-        num_obj_in_test = min(len(test_in_dist_dict[id_topic_agnews[ood_topic_idx]]), int(len(agcorpus_obj_dict[ood_topic_item]) / 2))
+        num_obj_in_dev = min(data_statistic_dict["ood_dev_per_label"], int(len(agcorpus_obj_dict[ood_topic_item])/2))
+        num_obj_in_test = min(data_statistic_dict["ood_test_per_label"], int(len(agcorpus_obj_dict[ood_topic_item])/2))
 
         obj_index_lst = [idx for idx in range(len(agcorpus_obj_dict[ood_topic_item]))]
         ood_dev_obj_index = random.sample(obj_index_lst, num_obj_in_dev)

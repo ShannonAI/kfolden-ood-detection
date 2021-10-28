@@ -42,6 +42,7 @@ def get_parser():
     parser.add_argument("--enable_leave_label_out", action="store_true", help="leave label out")
     parser.add_argument("--num_of_left_label", default=0, type=int, help="number of labels as ood data distribution")
     parser.add_argument("--do_lower_case", action="store_true")
+    parser.add_argument("--model_type", default="plm", type=str)
     parser.add_argument("--eval_batch_size", default=1, type=int)
     parser.add_argument("--pretrained_plm_model", action="store_true", )
     parser.add_argument("--loss_name", type=str, default="ce", help=" The name of the task to  train.")
@@ -58,7 +59,7 @@ def set_confidence_strategy():
     # temp_scaling is short for temperature scaling
     # Mahalanobis is short for mahalanobis distance
     # dropout is short for dropout
-    return ["msp", "temp_scaling", "mahalanobis", ""]
+    return ["msp", "temp_scaling", "mahalanobis", ]
 
 def get_dataloader(input_arguments, tokenizer, mode, keep_label_lst, pretrian_model=True, dist_sign="id"):
     batch_size = input_arguments.eval_batch_size
@@ -97,7 +98,7 @@ def collect_label_lst_from_data_files(data_dir, label_lst, dataset_name, data_di
         collected_label_term_lst = [data_item["label"] for data_item in data_examples]
         return collected_label_term_lst
     else:
-        raise ValueError
+        raise ValueError("data_distribution not in collect_label_lst_from_data_files")
 
 
 def collect_kfolden_pred_logits(args, tokenizer, full_id_label_lst, save_eval_dir, working_device, dist_sign="id"):
@@ -113,7 +114,7 @@ def collect_kfolden_pred_logits(args, tokenizer, full_id_label_lst, save_eval_di
         with open(file_saving_best_ckpt_path, "r") as f:
             best_ckpt_on_dev = f.read().strip()
 
-        hparams_file = os.path.join(args.output_dir, "lightning_logs", "version_0", "hparams.yaml")
+        hparams_file = os.path.join(args.output_dir, "lightning_logs", f"version_{idx}", "hparams.yaml")
         model_ckpt = best_ckpt_on_dev
         print(f">>> load model checkpoint: {model_ckpt}")
         trained_model = FinetunePLMTask.load_from_checkpoint(keep_label_lst=keep_label_lst, checkpoint_path=model_ckpt, hparams_file=hparams_file,
@@ -149,8 +150,7 @@ def collect_ensemble_models_pred_logits(args, tokenizer, full_id_label_lst, save
         file_saving_best_ckpt_path = os.path.join(sub_output_dir, "best_ckpt_on_dev.txt")
         with open(file_saving_best_ckpt_path, "r") as f:
             best_ckpt_on_dev = f.read().strip()
-
-        hparams_file = os.path.join(args.output_dir, "lightning_logs", "version_0", "hparams.yaml")
+        hparams_file = os.path.join(args.output_dir, "lightning_logs", f"version_{idx}", "hparams.yaml")
         model_ckpt = best_ckpt_on_dev
         print(f">>> load model checkpoint: {model_ckpt}")
         trained_model = FinetunePLMTask.load_from_checkpoint(keep_label_lst=full_id_label_lst, checkpoint_path=model_ckpt, hparams_file=hparams_file,
@@ -322,6 +322,8 @@ def main():
     print(f">>> TRAIN labels : {full_id_label_lst}")
     if args.pretrained_plm_model:
         tokenizer = AutoTokenizer.from_pretrained(args.bert_config_dir, use_fast=False, do_lower_case=args.do_lower_case)
+    else:
+        tokenizer = None
     # start eval process
     save_eval_dir = os.path.join(args.output_dir, "eval",)
 

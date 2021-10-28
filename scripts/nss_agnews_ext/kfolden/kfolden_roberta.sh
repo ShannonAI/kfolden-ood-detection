@@ -21,7 +21,7 @@ DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/agnews_ext
 
 TRAIN_BATCH_SIZE=36
 EVAL_BATCH_SIZE=12
-MAX_LENGTH=256
+MAX_LENGTH=384
 
 OPTIMIZER=torch.adam
 LR_SCHEDULE=linear

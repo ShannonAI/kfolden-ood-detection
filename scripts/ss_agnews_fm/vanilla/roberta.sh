@@ -17,7 +17,7 @@ DATA_DIR=/data/lixiaoya/datasets/kfolden/agnews_fm
 
 TRAIN_BATCH_SIZE=12
 EVAL_BATCH_SIZE=12
-MAX_LENGTH=256
+MAX_LENGTH=384
 
 OPTIMIZER=torch.adam
 LR_SCHEDULE=linear
