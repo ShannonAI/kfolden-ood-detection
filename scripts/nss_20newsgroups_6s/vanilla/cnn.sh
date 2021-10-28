@@ -26,7 +26,7 @@ mkdir -p ${OUTPUT_DIR}
 DATA_DIR=/data/lixiaoya/datasets/kfolden/20news_6s
 VOCAB_FILE=/data/lixiaoya/datasets/confidence/embeddings/glove.6B.300d_vocab_400002.txt
 LOG_FILE=${OUTPUT_DIR}/train_log.txt
-INIT_EMBEDDING=/data/lixiaoya/datasets/confidence/embeddings/glove.6B.300d.npy
+INIT_EMBEDDING=/data/lixiaoya/datasets/confidence/embeddings/glove.840B.300d.npy
 VOCAB_SIZE=400002
 EMB_SIZE=300
 
