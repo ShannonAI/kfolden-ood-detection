@@ -59,17 +59,17 @@ $ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f 
 
 Before start training models on benchmark datasets, please first download required files (e.g., Glove, BERT, RoBERTa).  
 
-1.1 For CNN/LSTM models, run [bash ./scripts/download/word_embedding.sh](./scripts/download/word_embedding.sh) to obtain Glove-300D the vocab file and the weight file. <br>
+- For CNN/LSTM models, run [bash ./scripts/download/word_embedding.sh](./scripts/download/word_embedding.sh) to obtain Glove-300D the vocab file and the weight file. <br>
 
-1.2 For pretrained mlm models, run [bash ./scripts/download/pretrained_lm.sh](./scripts/download/pretrained_lm.sh) 
+- For pretrained mlm models, run [bash ./scripts/download/pretrained_lm.sh](./scripts/download/pretrained_lm.sh) 
 to obtain BERT and RoBERTa model files.
 
 ## 2. Train and Evaluate 
 
-2.1 For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
+- For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
 Training and evaluation procedure are defined in [./task/train_nn.py](./task/train_nn.py).  <br>
 
-2.2 For pretrained mlm models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
+- For pretrained mlm models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
 Training and evaluation procedure are defined in [./task/finetune_plm.py](./task/finetune_plm.py). <br>
 
 Note that you need to change `DATA_DIR`, `BERT_DIR`, `OUTPUT_DIR` to your own dataset path, bert model path and log path, respectively.  <br> 
