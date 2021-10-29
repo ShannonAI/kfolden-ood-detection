@@ -12,6 +12,8 @@ LOSS_NAME=kfolden
 DATA_NAME=yahoo_answers_fm
 MODEL_SCALE=kfolden
 MODEL_TYPE=rnn
+NUM_LEAVE_OUT_LABEL=1
+LAMBDA_LOSS=0.001
 
 PRECISION=32
 PROGRESS_BAR=1
@@ -91,4 +93,8 @@ CUDA_VISIBLE_DEVICES=5 python ${REPO_PATH}/task/train_nn.py \
 --rnn_cell_type lstm \
 --distributed_backend 'dp' \
 --loss_name ${LOSS_NAME} \
---model_scale ${MODEL_SCALE}
+--num_of_left_label ${NUM_LEAVE_OUT_LABEL} \
+--lambda_loss ${LAMBDA_LOSS} \
+--loss_name ${LOSS_NAME} \
+--model_scale ${MODEL_SCALE} \
+--enable_leave_label_out

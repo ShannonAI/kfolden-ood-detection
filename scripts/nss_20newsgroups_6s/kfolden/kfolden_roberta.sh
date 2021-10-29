@@ -19,7 +19,7 @@ LAMBDA_LOSS=0.001
 BERT_DIR=/data/lixiaoya/models/roberta-large
 DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/20news_6s
 
-TRAIN_BATCH_SIZE=36
+TRAIN_BATCH_SIZE=24
 EVAL_BATCH_SIZE=12
 MAX_LENGTH=384
 

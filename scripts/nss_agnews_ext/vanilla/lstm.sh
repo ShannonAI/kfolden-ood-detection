@@ -92,5 +92,3 @@ CUDA_VISIBLE_DEVICES=5 python ${REPO_PATH}/task/train_nn.py \
 --bidirectional \
 --rnn_cell_type lstm \
 --distributed_backend 'dp' \
---loss_name ${LOSS_NAME} \
---model_scale ${MODEL_SCALE}
