@@ -301,6 +301,7 @@ def main():
     parser = Trainer.add_argparse_args(parser)
     args = parser.parse_args()
     full_label_lst = get_labels(args.data_name, dist_sign="id")
+    print(f"$$$%%% data_name: {args.data_name}")
     format = '%(asctime)s - %(name)s - %(message)s'
     logging.basicConfig(format=format, filename=os.path.join(args.output_dir, "eval_result_log.txt"), level=logging.INFO)
 
@@ -328,6 +329,8 @@ def main():
             save_label_to_file(full_label_lst, os.path.join(args.output_dir, "labels.txt"))
             finetune_model(args, args.output_dir, full_label_lst,)
         elif args.model_scale == "ensemble":
+            print("$" * 30)
+            print(f">>>>> {args.model_scale}")
             if args.num_of_ensemble == 0:
                 num_of_ensemble = len(full_label_lst)
             else:
@@ -336,7 +339,6 @@ def main():
             for iteration_idx in range(num_of_ensemble):
                 set_random_seed(2334+iteration_idx)
                 args.seed = 2334+iteration_idx
-                print("$" * 30)
                 print(f"seed in args: {args.seed}; seed in torch: {torch.initial_seed()}")
                 print(f">>> ENABLE ALL LABEL TRAINING ...")
                 print(f">>> target labels:  {full_label_lst}")

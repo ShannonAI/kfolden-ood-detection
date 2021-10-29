@@ -3,7 +3,7 @@
 
 # file: cnn.sh
 
-TIME_SIGN=2021.10.27
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=kfolden
 FILE_NAME=ss_agnews_fl_${SCRIPT_SIGN}_cnn
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -41,7 +41,7 @@ LR=0.001
 GRAD_CLIP=1.0
 LR_SCHEDULER=linear
 WARMUP=0.0
-MAX_CKPT=20
+MAX_CKPT=5
 TRAIN_BATCH_SIZE=16
 EVAL_BATCH_SIZE=12
 DROPOUT=0.2

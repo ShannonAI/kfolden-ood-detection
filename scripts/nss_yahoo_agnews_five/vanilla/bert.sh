@@ -3,7 +3,7 @@
 
 # bert.sh
 
-TIME_SIGN=2021.10.27
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=vanilla
 FILE_NAME=nss_yahoo_agnews_five_${SCRIPT_SIGN}_bert
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection

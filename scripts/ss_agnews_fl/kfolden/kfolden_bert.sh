@@ -3,7 +3,7 @@
 
 # kfolden_bert.sh
 
-TIME_SIGN=2021.10.25
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=kfolden
 FILE_NAME=ss_agnews_fl_${SCRIPT_SIGN}_bert
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection

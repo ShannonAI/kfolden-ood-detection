@@ -3,7 +3,7 @@
 
 # file: kfolden_lstm.sh
 
-TIME_SIGN=2021.10.21
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=kfolden
 FILE_NAME=ss_agnews_fm_${SCRIPT_SIGN}_lstm
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -40,7 +40,7 @@ WEIGHT_DECAY=5e-4
 LR=0.003
 LR_SCHEDULER=polydecay
 WARMUP=0.0
-MAX_CKPT=20
+MAX_CKPT=5
 TRAIN_BATCH_SIZE=16
 EVAL_BATCH_SIZE=12
 DROPOUT=0.1

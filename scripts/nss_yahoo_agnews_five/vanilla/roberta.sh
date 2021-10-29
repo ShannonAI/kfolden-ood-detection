@@ -3,7 +3,7 @@
 
 # roberta.sh
 
-TIME_SIGN=2021.10.27
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=vanilla
 FILE_NAME=nss_yahoo_agnews_five_${SCRIPT_SIGN}_roberta
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -15,7 +15,7 @@ MODEL_TYPE=roberta
 BERT_DIR=/data/lixiaoya/models/roberta-large
 DATA_DIR=/data/lixiaoya/datasets/kfolden/yahoo_agnews_five
 
-TRAIN_BATCH_SIZE=12
+TRAIN_BATCH_SIZE=18
 EVAL_BATCH_SIZE=12
 MAX_LENGTH=384
 

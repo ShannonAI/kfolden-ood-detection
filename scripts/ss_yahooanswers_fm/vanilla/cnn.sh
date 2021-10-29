@@ -3,7 +3,7 @@
 
 # file: cnn.sh
 
-TIME_SIGN=2021.10.27
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=vanilla
 FILE_NAME=ss_yahoo_answers_fm_${SCRIPT_SIGN}_cnn
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -39,7 +39,7 @@ WEIGHT_DECAY=1e-4
 LR=0.001
 LR_SCHEDULER=linear
 WARMUP=0.0
-MAX_CKPT=20
+MAX_CKPT=5
 TRAIN_BATCH_SIZE=16
 EVAL_BATCH_SIZE=12
 DROPOUT=0.2
@@ -72,7 +72,6 @@ CUDA_VISIBLE_DEVICES=6 python ${REPO_PATH}/task/train_nn.py \
 --warmup_proportion ${WARMUP} \
 --max_keep_ckpt ${MAX_CKPT} \
 --output_dir ${OUTPUT_DIR} \
---log_file ${LOG_FILE} \
 --dropout ${DROPOUT} \
 --classifier_type ${CLASSIFIER} \
 --activate_func ${ACTIVATE} \

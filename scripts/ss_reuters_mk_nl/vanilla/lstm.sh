@@ -3,7 +3,7 @@
 
 # file: lstm.sh
 
-TIME_SIGN=2021.10.21
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=vanilla
 FILE_NAME=ss_reuters_mk_nl_${SCRIPT_SIGN}_lstm
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -39,13 +39,12 @@ WEIGHT_DECAY=5e-4
 LR=0.003
 LR_SCHEDULER=polydecay
 WARMUP=0.0
-MAX_CKPT=20
+MAX_CKPT=5
 TRAIN_BATCH_SIZE=16
 EVAL_BATCH_SIZE=12
 DROPOUT=0.5
 CLASSIFIER=mlp
 ACTIVATE=relu
-NUM_LABEL=20
 HIDDEN_SIZE=300
 NUM_LAYER=1
 RNN_DROPOUT=0.2
@@ -73,7 +72,6 @@ CUDA_VISIBLE_DEVICES=5 python ${REPO_PATH}/task/train_nn.py \
 --warmup_proportion ${WARMUP} \
 --max_keep_ckpt ${MAX_CKPT} \
 --output_dir ${OUTPUT_DIR} \
---log_file ${LOG_FILE} \
 --dropout 0.1 \
 --classifier_type ${CLASSIFIER} \
 --activate_func ${ACTIVATE} \

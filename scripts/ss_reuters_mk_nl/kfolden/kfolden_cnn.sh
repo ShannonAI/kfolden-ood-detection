@@ -3,7 +3,7 @@
 
 # file: cnn.sh
 
-TIME_SIGN=2021.10.27
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=kfolden
 FILE_NAME=ss_reuters_mk_nl_${SCRIPT_SIGN}_cnn
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -34,7 +34,7 @@ EMB_SIZE=300
 
 MAX_LEN=384
 PAD_IDX=0
-EPOCH=20
+EPOCH=5
 OPTIM=torch.adam
 WEIGHT_DECAY=1e-4
 LR=0.001

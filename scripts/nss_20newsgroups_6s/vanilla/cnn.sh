@@ -3,7 +3,7 @@
 
 # file: cnn.sh
 
-TIME_SIGN=2021.10.27
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=vanilla
 FILE_NAME=nss_20news_6s_${SCRIPT_SIGN}_cnn
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -26,7 +26,7 @@ mkdir -p ${OUTPUT_DIR}
 DATA_DIR=/data/lixiaoya/datasets/kfolden/20news_6s
 VOCAB_FILE=/data/lixiaoya/datasets/confidence/embeddings/glove.6B.300d_vocab_400002.txt
 LOG_FILE=${OUTPUT_DIR}/train_log.txt
-INIT_EMBEDDING=/data/lixiaoya/datasets/confidence/embeddings/glove.840B.300d.npy
+INIT_EMBEDDING=/data/lixiaoya/datasets/confidence/embeddings/glove.6B.300d.npy
 VOCAB_SIZE=400002
 EMB_SIZE=300
 
@@ -39,7 +39,7 @@ WEIGHT_DECAY=1e-4
 LR=0.001
 LR_SCHEDULER=linear
 WARMUP=0.0
-MAX_CKPT=20
+MAX_CKPT=5
 TRAIN_BATCH_SIZE=16
 EVAL_BATCH_SIZE=12
 DROPOUT=0.2
@@ -72,7 +72,6 @@ CUDA_VISIBLE_DEVICES=6 python ${REPO_PATH}/task/train_nn.py \
 --warmup_proportion ${WARMUP} \
 --max_keep_ckpt ${MAX_CKPT} \
 --output_dir ${OUTPUT_DIR} \
---log_file ${LOG_FILE} \
 --dropout ${DROPOUT} \
 --classifier_type ${CLASSIFIER} \
 --activate_func ${ACTIVATE} \

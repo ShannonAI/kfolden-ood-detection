@@ -3,7 +3,7 @@
 
 # kfolden_roberta.sh
 
-TIME_SIGN=2021.10.21
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=kfolden
 FILE_NAME=ss_yahoo_answers_fm_${SCRIPT_SIGN}_roberta
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -17,9 +17,9 @@ NUM_LEAVE_OUT_LABEL=1
 LAMBDA_LOSS=0.001
 
 BERT_DIR=/data/lixiaoya/models/roberta-large
-DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/yahoo_answers_fm
+DATA_DIR=/data/lixiaoya/datasets/kfolden/yahoo_answers_fm
 
-TRAIN_BATCH_SIZE=36
+TRAIN_BATCH_SIZE=18
 EVAL_BATCH_SIZE=12
 MAX_LENGTH=384
 

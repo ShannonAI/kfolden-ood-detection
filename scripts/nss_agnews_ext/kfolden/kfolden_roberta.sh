@@ -3,7 +3,7 @@
 
 # kfolden_roberta.sh
 
-TIME_SIGN=2021.10.21
+TIME_SIGN=2021.10.29
 SCRIPT_SIGN=kfolden
 FILE_NAME=nss_agnews_ext_${SCRIPT_SIGN}_roberta
 REPO_PATH=/data/lixiaoya/workspace/kfolden-ood-detection
@@ -19,7 +19,7 @@ LAMBDA_LOSS=0.001
 BERT_DIR=/data/lixiaoya/models/roberta-large
 DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/agnews_ext
 
-TRAIN_BATCH_SIZE=24
+TRAIN_BATCH_SIZE=18
 EVAL_BATCH_SIZE=12
 MAX_LENGTH=384
 
