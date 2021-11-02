@@ -54,7 +54,7 @@ NUM_KERNEL=6
 KERNEL_SIZE="3;4;5;6;7;8"
 CONV_STRIDE="1;2;2;2;3;3"
 
-CUDA_VISIBLE_DEVICES=3 python ${REPO_PATH}/task/train_nn.py \
+CUDA_VISIBLE_DEVICES=1 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
 --default_root ${OUTPUT_DIR} \
 --data_name ${DATA_NAME} \

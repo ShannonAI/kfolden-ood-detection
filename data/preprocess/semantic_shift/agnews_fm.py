@@ -102,7 +102,7 @@ def load_agcorpus_data(data_file):
     print("#" * 10)
     return data_obj_dict
 
-def get_id_and_ood_data_statisic():
+def get_id_and_ood_data_statistic():
     data_label = {
         "ood_test_per_label": 1000,
         "ood_test": 4000,
@@ -118,7 +118,7 @@ def get_id_and_ood_data_statisic():
     return data_label
 
 def split_id_ood_distribution_strategy(agnews_train_obj_dict, agnews_dev_obj_dict, agnews_test_obj_dict, agcorpus_obj_dict):
-    data_statistic_dict = get_id_and_ood_data_statisic()
+    data_statistic_dict = get_id_and_ood_data_statistic()
 
     id_topic_agnews = ["World", "Sports", "Business", "Sci/Tech"]
     # ID: "World", "Sports", "Business", "Sci/Tech"

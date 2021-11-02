@@ -43,7 +43,8 @@ OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}_${MODEL_SCALE}_${TRAIN_B
 
 mkdir -p ${OUTPUT_DIR}
 
-CUDA_VISIBLE_DEVICES=4 python ${REPO_PATH}/task/finetune_plm.py \
+GPUID=3
+CUDA_VISIBLE_DEVICES=${GPUID} python ${REPO_PATH}/task/finetune_plm.py \
 --gpus="1" \
 --data_name ${DATA_NAME} \
 --precision=${PRECISION} \
@@ -72,3 +73,14 @@ CUDA_VISIBLE_DEVICES=4 python ${REPO_PATH}/task/finetune_plm.py \
 --model_scale ${MODEL_SCALE} \
 --model_type ${MODEL_TYPE}
 
+# evaluate
+CUDA_VISIBLE_DEVICES=${GPUID} python ${REPO_PATH}/task/evaluate_saved_ckpt.py \
+--data_dir ${DATA_DIR} \
+--bert_config_dir ${BERT_DIR} \
+--data_name ${DATA_NAME} \
+--output_dir ${OUTPUT_DIR} \
+--eval_batch_size ${EVAL_BATCH_SIZE} \
+--max_length ${MAX_LENGTH} \
+--enable_leave_label_out \
+--num_of_left_label ${NUM_LEAVE_OUT_LABEL} \
+--pretrained_plm_model

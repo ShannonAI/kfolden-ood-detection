@@ -53,7 +53,7 @@ RNN_DROPOUT=0.2
 RNN_ACT=tanh
 POOLING=max_pool
 
-CUDA_VISIBLE_DEVICES=5 python ${REPO_PATH}/task/train_nn.py \
+CUDA_VISIBLE_DEVICES=6 python ${REPO_PATH}/task/train_nn.py \
 --gpus="1" \
 --data_name ${DATA_NAME} \
 --default_root ${OUTPUT_DIR} \

@@ -40,7 +40,7 @@ class CNNForTextClassification(nn.Module):
         self.classifier = MultiLayerPerceptronClassifier(hidden_size=config.num_kernels * config.hidden_size, num_labels=config.num_labels, activate_func=config.activate_func)
         self.dropout = nn.Dropout(config.dropout)
 
-    def forward(self, input_sequence):
+    def forward(self, input_sequence, output_hidden_states=None,):
         """
         Args:
             input_sequence: LongTensor, shape of (batch_size, seq_len)
@@ -62,10 +62,15 @@ class CNNForTextClassification(nn.Module):
             cnn_layer_output = torch.squeeze(pool_layer(cnn_output), 2) # (batch_size, hidden_size)
             cnns_outputs.append(cnn_layer_output)
 
-        cnns_outputs = torch.stack(cnns_outputs, dim=2,) # (batch_size, hidden_size, num_kernels)
-        batch_size = cnns_outputs.shape[0]
-        cnns_outputs = cnns_outputs.view(batch_size, -1)
-        cnns_outputs = self.dropout(cnns_outputs)
-        classifier_output = self.classifier(cnns_outputs)
+        cnns_outputs_tensor = torch.stack(cnns_outputs, dim=2,) # (batch_size, hidden_size, num_kernels)
+        batch_size = cnns_outputs_tensor.shape[0]
+        cnns_outputs_tensor = cnns_outputs_tensor.view(batch_size, -1)
+        cnns_outputs_tensor = self.dropout(cnns_outputs_tensor)
+        classifier_output = self.classifier(cnns_outputs_tensor)
 
-        return classifier_output
+        if not output_hidden_states:
+            return classifier_output
+        else:
+            all_layer_hidden_states = [input_seq_embeddings_permute]
+            all_layer_hidden_states.extend(cnns_outputs)
+            return classifier_output, all_layer_hidden_states

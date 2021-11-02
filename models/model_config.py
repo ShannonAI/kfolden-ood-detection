@@ -15,7 +15,6 @@ class BertForSequenceClassificationConfig(BertConfig):
         self.hidden_size = kwargs.get("hidden_size", 768)
         self.truncated_normal = kwargs.get("truncated_normal", False)
 
-
 class RobertaForSequenceClassificationConfig(RobertaConfig):
     def __init__(self, **kwargs):
         super(RobertaForSequenceClassificationConfig, self).__init__(**kwargs)

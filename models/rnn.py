@@ -39,7 +39,7 @@ class RNNForTextClassification(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
         self.pooling_strategy = config.pooling_strategy
 
-    def forward(self, input_sequence):
+    def forward(self, input_sequence, output_hidden_states=None):
         """
         Args:
             input_sequence: LongTensor, shape of (batch_size, seq_len)
@@ -63,4 +63,10 @@ class RNNForTextClassification(nn.Module):
         seq_features = self.dropout(seq_features)
         classifier_output = self.classifier(seq_features)
 
-        return classifier_output
+        if not output_hidden_states:
+            return classifier_output
+        else:
+            all_layer_hidden_states = [input_seq_embeddings]
+            all_layer_hidden_states.extend(rnn_state_outputs)
+            return classifier_output, all_layer_hidden_states
+

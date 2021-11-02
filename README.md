@@ -54,7 +54,6 @@ $ pip3 install torch==1.7.1+cu101 torchvision==0.8.2+cu101 torchaudio==0.7.2 -f 
 **Notice**: please check your CUDA version and install compatible pytorch referring to [pytorch.org](https://pytorch.org/).  
 
 
-
 ## 1. Download Glove, BERT, and RoBERTa 
 
 Before start training models on benchmark datasets, please first download required files (e.g., Glove, BERT, RoBERTa).  

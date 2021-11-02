@@ -35,9 +35,14 @@ def load_agcorpus_data(data_file):
             data_obj_dict[tmp_category] = [tmp_agcorpus_obj]
         else:
             data_obj_dict[tmp_category].append(tmp_agcorpus_obj)
+    print("#" * 10)
+    print("> check data in AG-Corpus :")
+    for data_key, data_value in data_obj_dict.items():
+        print(f"\t {data_key}: {len(data_value)}")
+    print("#" * 10)
     return data_obj_dict
 
-def load_agnews_data(data_dir):
+def load_agnews_data(data_dir, num_data_in_dev_per_label=1900):
     label_file = os.path.join(data_dir, "classes.txt")
     with open(label_file, "r") as f:
         idx_to_label_dict = {str(label_idx + 1): label_item.strip() for label_idx, label_item in
@@ -64,7 +69,7 @@ def load_agnews_data(data_dir):
 
     for key_item in train_dev_obj_dict.keys():
         num_obj = len(train_dev_obj_dict[key_item])
-        num_obj_in_dev = int(0.1 * num_obj)
+        num_obj_in_dev = num_data_in_dev_per_label
         obj_index_lst = [idx for idx in range(0, num_obj)]
         obj_idx_for_dev = random.sample(obj_index_lst, num_obj_in_dev)
         obj_idx_for_train = list(set(obj_index_lst) - set(obj_idx_for_dev))
@@ -92,15 +97,108 @@ def load_agnews_data(data_dir):
     for test_key, test_value in test_obj_dict.items():
         print(f"\t {test_key}: {len(test_value)}")
     print("#"*10)
-
     return train_obj_dict, dev_obj_dict, test_obj_dict
 
+def get_id_and_ood_data_statistic():
+    data_label = {
+        "ood_test_per_label": 1900,
+        "ood_test": 7600,
+        "id_test_per_label": 1900,
+        "id_test": 7600,
+        "ood_dev_per_label": 1900,
+        "ood_dev": 7600,
+        "id_dev_per_label": 1900,
+        "id_dev": 7600,
+        "train_per_label": 28100,
+        "train":  112400
+    }
+    return data_label
+
 def split_id_ood_distribution_strategy(agnews_train_dict, agnews_dev_dict, agnews_test_dict, agcorpus_data_dict):
-    # remove agnews
-    for agnews_data_key, agnews_data_value in agnews_train_dict.items():
-        tmp_agcorpus_data_obj_lst = agcorpus_data_dict[agnews_data_key]
+    data_statistic_dict = get_id_and_ood_data_statistic()
+
+    id_topic_agnews = ["World", "Sports", "Business", "Sci/Tech"]
+    ood_topic_agcorpus = ["World", "Sports", "Business", "Sci/Tech"]
+
+    print(f">>> BEFORE removing duplicate data pairs : ")
+    for tmp_topic in id_topic_agnews:
+        print(f"AG-Corpus {tmp_topic} -> {len(agcorpus_data_dict[tmp_topic])}")
+
+    remove_agcorpus_idx_dict = {}
+    for ood_topic in ood_topic_agcorpus:
+        print(f"REMOVE {ood_topic}")
+        remove_agcorpus_idx_lst = []
+        for data_item in agnews_train_dict[ood_topic]:
+            data_item_desc = data_item.description
+            find_bool = 0
+            for candi_data_idx, candi_data_item in enumerate(agcorpus_data_dict[ood_topic]):
+                if find_bool == 0 and candi_data_item.description != data_item_desc:
+                    continue
+                elif find_bool == 0 and candi_data_item.description == data_item_desc:
+                    remove_agcorpus_idx_lst.append(candi_data_idx)
+                    find_bool = 1
+                elif find_bool == 1:
+                    continue
+                else:
+                    ValueError
+        print(f"## AGCORPUS TRAIN DONE. ")
+
+        for data_item in agnews_dev_dict[ood_topic]:
+            data_item_desc = data_item.description
+            find_bool = 0
+            for candi_data_idx, candi_data_item in enumerate(agcorpus_data_dict[ood_topic]):
+                if find_bool == 0 and candi_data_item.description != data_item_desc:
+                    continue
+                elif find_bool == 0 and candi_data_item.description == data_item_desc:
+                    remove_agcorpus_idx_lst.append(candi_data_idx)
+                    find_bool = 1
+                elif find_bool == 1:
+                    continue
+                else:
+                    ValueError
+        print(f"## AGCORPUS DEV DONE. ")
+
+        for data_item in agnews_test_dict[ood_topic]:
+            data_item_desc = data_item.description
+            find_bool = 0
+            for candi_data_idx, candi_data_item in enumerate(agcorpus_data_dict[ood_topic]):
+                if find_bool == 0 and candi_data_item.description != data_item_desc:
+                    continue
+                elif find_bool == 0 and candi_data_item.description == data_item_desc:
+                    remove_agcorpus_idx_lst.append(candi_data_idx)
+                    find_bool = 1
+                elif find_bool == 1:
+                    continue
+                else:
+                    ValueError
+        print(f"CHECK REMOVE ...")
+        print(len(set(remove_agcorpus_idx_lst)))
+        remove_agcorpus_idx_dict[ood_topic] = set(remove_agcorpus_idx_lst)
+        print(f"## AGCORPUS TEST DONE. ")
+
+    print(f">>> AFTER removing duplicate data pairs : ")
+    for tmp_topic in ood_topic_agcorpus:
+        print(f"AG-Corpus {tmp_topic} -> {len(remove_agcorpus_idx_dict[tmp_topic])}")
 
     train_in_dist_dict, dev_in_dist_dict, test_in_dist_dict, dev_out_of_dist_dict, test_out_of_dist_dict = {}, {}, {}, {}, {}
+
+    for id_topic_item in id_topic_agnews:
+        train_in_dist_dict[id_topic_item] = agnews_train_dict[id_topic_item]
+        dev_in_dist_dict[id_topic_item] = agnews_dev_dict[id_topic_item]
+        test_in_dist_dict[id_topic_item] = agnews_test_dict[id_topic_item]
+
+    for ood_topic_item in ood_topic_agcorpus:
+        num_obj_in_dev = data_statistic_dict["ood_dev_per_label"]
+        num_obj_in_test = data_statistic_dict["ood_test_per_label"]
+
+        obj_index_lst = [idx for idx in range(len(agcorpus_data_dict[ood_topic_item]))]
+        obj_index_lst = list(set(obj_index_lst) - set(remove_agcorpus_idx_dict[ood_topic_item]))
+        ood_dev_obj_index = random.sample(obj_index_lst, num_obj_in_dev)
+        left_obj_idx_lst = list(set(obj_index_lst) - set(ood_dev_obj_index))
+        ood_test_obj_index = random.sample(left_obj_idx_lst, num_obj_in_test)
+
+        dev_out_of_dist_dict[ood_topic_item] = [agcorpus_data_dict[ood_topic_item][idx] for idx in ood_dev_obj_index]
+        test_out_of_dist_dict[ood_topic_item] = [agcorpus_data_dict[ood_topic_item][idx] for idx in ood_test_obj_index]
 
     return train_in_dist_dict, dev_in_dist_dict, test_in_dist_dict, dev_out_of_dist_dict, test_out_of_dist_dict
 
@@ -130,7 +228,7 @@ def save_id_ood_data(save_data_dir, data_file_name, data_object_dict):
 def get_argument_parser():
     parser = argparse.ArgumentParser(description="return agnews-ext argument parser.")
     parser.add_argument("--ag_news_data_dir", type=str, required=True, help="yahoo_answers data dir")
-    parser.add_argument("--ag_corpus_data_dir", type=str, required=True, help="ag_corpus data dir")
+    parser.add_argument("--ag_corpus_data_file", type=str, required=True, help="ag_corpus data dir")
     parser.add_argument("--save_data_dir", type=str, required=True, help="")
     parser.add_argument("--save_original_data_to_csv", action="store_true")
 

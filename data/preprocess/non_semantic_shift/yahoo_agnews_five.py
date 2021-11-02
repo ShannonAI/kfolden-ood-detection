@@ -91,7 +91,7 @@ def load_yahoo_answers_data(data_dir, dev_ratio=0.03):
 
     return train_obj_dict, dev_obj_dict, test_obj_dict
 
-def get_id_and_ood_data_statisic():
+def get_id_and_ood_data_statistic():
     data_label = {
         "ood_test_per_label": 500,
         "ood_test": 2500,
@@ -107,7 +107,7 @@ def get_id_and_ood_data_statisic():
     return data_label
 
 def split_id_ood_distribution_strategy(yahoo_train_obj_dict, yahoo_dev_obj_dict, yahoo_test_obj_dict, agcorpus_obj_dict):
-    data_statistic_dict = get_id_and_ood_data_statisic()
+    data_statistic_dict = get_id_and_ood_data_statistic()
 
     id_topic_yahoo = ["Health", "Science & Mathematics", "Sports", "Entertainment & Music", "Business & Finance"]
     # ID-yahoo: "Health", "Science & Mathematics", "Sports", "Entertainment & Music", "Business & Finance"
