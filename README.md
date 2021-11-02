@@ -65,24 +65,39 @@ to obtain BERT and RoBERTa model files.
 
 ## 2. Train and Evaluate 
 
-- For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
-Training and evaluation procedure are defined in [./task/train_nn.py](./task/train_nn.py).  <br>
+Please change `DATA_DIR`, `BERT_DIR`, `OUTPUT_DIR` to your own data directory, BERT/RoBERTa directory and output directory, respectively.  <br> 
 
-- For pretrained mlm models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/` folder. <br>
-Training and evaluation procedure are defined in [./task/finetune_plm.py](./task/finetune_plm.py). <br>
 
-Note that you need to change `DATA_DIR`, `BERT_DIR`, `OUTPUT_DIR` to your own dataset path, bert model path and log path, respectively.  <br> 
+### 2.1 Vanilla Models 
 
-During training, the model trainer will automatically evaluate on the dev set every `val_check_interval` epochs,
-and save the topk checkpoints to `$OUTPUT_DIR`. <br> 
-After training, you can find the best checkpoint on the dev set according to the evaluation results in `$OUTPUT_DIR/train_log.txt`. <br> 
-When treating $K$ labels as out-of-distribution samples, the model trainer saves $k$ under the directory `OUTPUT_DIR`. 
+- For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/vanilla/` folder. <br>
+During training, the trainer saves intermediate logs to the `$OUTPUT_DIR/eval_result_log.txt` file. <br>
+After training, the trainer loads the `best_ckpt_on_dev` model and evaluates it on in-distribution and out-of-distribution test sets. 
+Evaluation results are saved to `$OUTPUT_DIR/eval_result_log.txt`. 
 
-**Note**: <br>
-[1]: `REPO_PATH`: The path to the `kfolden-ood-detection` repository. <br> 
-[2]: `DATA_DIR`: The path to benchmark directory. <br> 
-[3]: `OUTPUT_DIR`: The directory for saving training logs and intermediate checkpoints. <br>
+- For pretrained masked lm models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/vanilla/` folder. <br>
+During training, the trainer saves intermediate logs to the `$OUTPUT_DIR/eval_result_log.txt` file. <br>
+After training, the trainer loads the `best_ckpt_on_dev` model and evaluates it on in-distribution and out-of-distribution test sets. 
+Evaluation results are saved to `$OUTPUT_DIR/eval_result_log.txt`. 
 
+### 2.2 kFolden Models 
+
+`k` denotes the number of labels for in-distribution data. 
+
+- For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/kfolden/` folder. <br>
+During training, the trainer creates `k` subfolders under `$OUTPUT_DIR` (from `0` to `k-1`) and saves intermediate logs to the `$OUTPUT_DIR/eval_result_log.txt` file. <br> 
+After training, the trainer loads `k` `best_ckpt_on_dev` models and evaluates them on in-distribution and out-of-distribution test sets. 
+Evaluation results are saved to `$OUTPUT_DIR/<k-1>/eval_result_log.txt`. 
+
+- For pretrained mlm models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/kfolden/` folder. <br>
+During training, the trainer creates `k` subfolders under `$OUTPUT_DIR` (from `0` to `k-1`) and saves intermediate logs to the `$OUTPUT_DIR/eval_result_log.txt` file. <br> 
+After training, the trainer loads `k` `best_ckpt_on_dev` models and evaluates them on in-distribution and out-of-distribution test sets. 
+Evaluation results are saved to `$OUTPUT_DIR/<k-1>/eval_result_log.txt`. 
+
+**Note**: for `<model-type>+<confidence-score-strategy>` results in the paper (Table 2 and Table 3), you should run `bash ./scripts/<dataset_name>/<vanilla-or-kfolden>/<model-type>.sh`. 
+After training, the model trainer evaluates on in-distribution and out-of-distribution datasets with various calibration strategies. <br>
+For `RoBERTa`, `RoBERTa+Scaling`, and `RoBERTa+Mahalanobis` kfolden model results on `20Newsgroups-6S` dataset, 
+you should run `bash ./nss_20newsgroups_6s/kfolden/kfolden_roberta.sh`. After training, the evaluation results can be found at `$OUTPUT_DIR/<k-1>/eval_result_log.txt`.
 
 ### Contact 
 
