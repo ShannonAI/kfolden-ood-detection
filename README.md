@@ -94,10 +94,10 @@ During training, the trainer creates `k` subfolders under `$OUTPUT_DIR` (from `0
 After training, the trainer loads `k` `best_ckpt_on_dev` models and evaluates them on in-distribution and out-of-distribution test sets. 
 Evaluation results are saved to `$OUTPUT_DIR/<k-1>/eval_result_log.txt`. 
 
-**Note**: for `<model-type>+<confidence-score-strategy>` results in the paper (Table 2 and Table 3), you should run `bash ./scripts/<dataset_name>/<vanilla-or-kfolden>/<model-type>.sh`. 
+**Note**: for `<model-type>+<confidence-score-strategy>` results in the paper (Table 2 and Table 3), you should run `bash ./scripts/<dataset_name>/<vanilla-or-kfolden>/<model-type>.sh`. <br>
 After training, the model trainer evaluates on in-distribution and out-of-distribution datasets with various calibration strategies. <br>
-For `RoBERTa`, `RoBERTa+Scaling`, and `RoBERTa+Mahalanobis` kfolden model results on `20Newsgroups-6S` dataset, 
-you should run `bash ./nss_20newsgroups_6s/kfolden/kfolden_roberta.sh`. After training, the evaluation results can be found at `$OUTPUT_DIR/<k-1>/eval_result_log.txt`.
+For `RoBERTa`, `RoBERTa+Scaling`, and `RoBERTa+Mahalanobis` kfolden model results on `20Newsgroups-6S` dataset, <br>
+you should run `bash ./nss_20newsgroups_6s/kfolden/kfolden_roberta.sh`. After training, the evaluation results can be found at `$OUTPUT_DIR/<k-1>/eval_result_log.txt`. <br>
 
 ### Contact 
 
