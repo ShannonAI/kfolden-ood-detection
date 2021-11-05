@@ -42,6 +42,8 @@ OUTPUT_BASE_DIR=/data/lixiaoya/outputs/kfolden_outputs
 OUTPUT_DIR=${OUTPUT_BASE_DIR}/${TIME_SIGN}/${FILE_NAME}_${MODEL_SCALE}_${TRAIN_BATCH_SIZE}_${MAX_LENGTH}_${LR}_${LR_SCHEDULE}_${BERT_DROPOUT}_${ACC_GRAD}_${MAX_EPOCH}_${GRAD_CLIP}_${WEIGHT_DECAY}_${WARMUP_PROPORTION}_${LOSS_SIGN}
 
 mkdir -p ${OUTPUT_DIR}
+mkdir -p ${OUTPUT_DIR}/eval
+
 GPUID=3
 CUDA_VISIBLE_DEVICES=${GPUID} python ${REPO_PATH}/task/finetune_plm.py \
 --gpus="1" \

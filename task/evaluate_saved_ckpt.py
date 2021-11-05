@@ -97,8 +97,11 @@ def main():
     args = parser.parse_args()
 
     # logging info
+    save_eval_dir = os.path.join(args.output_dir, "eval",)
+    os.makedirs(save_eval_dir, exist_ok=True)
+    os.system(f"chmod -R 777 {save_eval_dir}")
     format = '%(asctime)s - %(name)s - %(message)s'
-    logging.basicConfig(format=format, filename=os.path.join(args.output_dir, "eval", "eval_result_log.txt"), level=logging.INFO)
+    logging.basicConfig(format=format, filename=os.path.join(args.output_dir, "eval_result_log.txt"), level=logging.INFO)
     result_logger = logging.getLogger(__name__)
     result_logger.setLevel(logging.INFO)
 
@@ -115,8 +118,6 @@ def main():
         tokenizer = AutoTokenizer.from_pretrained(args.bert_config_dir, use_fast=False, do_lower_case=args.do_lower_case)
     else:
         tokenizer = None
-    # start eval process
-    save_eval_dir = os.path.join(args.output_dir, "eval",)
 
     if args.enable_leave_label_out:
         # prepare for in-distribution label list, need to turn to visible labels

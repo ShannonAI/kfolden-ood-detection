@@ -15,9 +15,9 @@
 
 ### The original datafiles used in this paper
 
-- [AG News]()
-- [AG Corpora]()
-- [Yahoo!Answers]()
-- [20Newsgroups]()
+- [AG News](https://drive.google.com/file/d/1lERbCoqT9wkYvbXc0FUyVw6_zwOcLnPR/view?usp=sharing)
+- [AG Corpora](https://drive.google.com/file/d/17dbWGptXKsiSSktSJWloTDG4CWl122Ed/view?usp=sharing)
+- [Yahoo!Answers](https://drive.google.com/file/d/1NRp3u_mLHSlLS4IMZ1wRlpzBhkCh_osU/view?usp=sharing)
+- [20Newsgroups](https://drive.google.com/file/d/1tCtyZEkr1NXE9mYjiYu7UE-wKcwnsjP2/view?usp=sharing)
 - [Reuters-21578]()
 

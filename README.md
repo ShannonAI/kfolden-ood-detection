@@ -67,7 +67,6 @@ to obtain BERT and RoBERTa model files.
 
 Please change `DATA_DIR`, `BERT_DIR`, `OUTPUT_DIR` to your own data directory, BERT/RoBERTa directory and output directory, respectively.  <br> 
 
-
 ### 2.1 Vanilla Models 
 
 - For CNN/LSTM models, scripts for reproducing experimental results can be found under the `./scripts/<dataset_name>/vanilla/` folder. <br>
