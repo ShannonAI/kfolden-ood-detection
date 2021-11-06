@@ -61,7 +61,7 @@ def collect_kfolden_confidence_score(num_of_left_label, save_eval_dir, full_id_l
         load_np_file = os.path.join(save_eval_dir, f"id_{idx}.npy")
         np_value = np.load(load_np_file)
         id_pred_prob_lst.append(np_value)
-    id_sum_prob_matrix = np.sum(id_pred_prob_lst, axis=0)
+    id_sum_prob_matrix = np.sum(id_pred_prob_lst, axis=0, keepdims=True)
     id_avg_prob_matrix = id_sum_prob_matrix / float(len(full_id_label_lst))
     print(f">>> check the value of sum_prob_matrix")
     print(f"{id_sum_prob_matrix[:2, :]}")
@@ -76,7 +76,7 @@ def collect_kfolden_confidence_score(num_of_left_label, save_eval_dir, full_id_l
         load_np_file = os.path.join(save_eval_dir, f"ood_{idx}.npy")
         np_value = np.load(load_np_file)
         ood_pred_prob_lst.append(np_value)
-    ood_sum_prob_matrix = np.sum(ood_pred_prob_lst, axis=0)
+    ood_sum_prob_matrix = np.sum(ood_pred_prob_lst, axis=0, keepdims=True)
     ood_avg_prob_matrix = ood_sum_prob_matrix / float(len(full_id_label_lst))
 
     # if confidence_strategy == "msp":

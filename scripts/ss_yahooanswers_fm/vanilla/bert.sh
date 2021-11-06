@@ -16,7 +16,7 @@ DATA_DIR=/data/lixiaoya/datasets/kfolden/yahoo_answers_fm
 
 
 TRAIN_BATCH_SIZE=12
-EVAL_BATCH_SIZE=12
+EVAL_BATCH_SIZE=1
 MAX_LENGTH=384
 
 OPTIMIZER=torch.adam

@@ -7,7 +7,7 @@
 import numpy as np
 
 
-def compute_fpr_tpr95(id_confidence_array: np.array, ood_confidence_array: np.array, num_id_labels: int):
+def compute_fpr_tpr95(id_confidence_array: np.array, ood_confidence_array: np.array, num_id_labels: int, eps: float=1e-12):
     # return FPR value when true_positive rate reaches 0.95
     start, end = 1 / float(num_id_labels), 1
     gap = (end - start) / float(100000)
@@ -21,7 +21,7 @@ def compute_fpr_tpr95(id_confidence_array: np.array, ood_confidence_array: np.ar
         if tpr <= 0.9505 and tpr >= 0.9495:
             fpr += error2
             total += 1
-    fpr95_score_value = fpr / total
+    fpr95_score_value = fpr / (total + eps)
     return fpr95_score_value
 
 

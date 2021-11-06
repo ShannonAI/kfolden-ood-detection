@@ -21,12 +21,11 @@ def collect_ensemble_models_confidence_score(save_eval_dir, num_of_ensemble, con
         np_value = np.load(load_np_file)
         id_pred_logits_lst.append(np_value)
 
-    if confidence_strategy == "msp":
-        id_pred_prob_array = np.array([compute_softmax_np(logits_item) for logits_item in id_pred_logits_lst])
-        id_sum_prob_matrix = np.sum(id_pred_prob_array, axis=0)
-        id_avg_prob_matrix = id_sum_prob_matrix / float(num_of_ensemble)
-        id_pred_label_idx_array = np.argmax(id_avg_prob_matrix, axis=-1)
-        id_confidence_array = np.amax(id_avg_prob_matrix, axis=-1)
+    id_pred_prob_array = np.array([compute_softmax_np(logits_item) for logits_item in id_pred_logits_lst])
+    id_sum_prob_matrix = np.sum(id_pred_prob_array, axis=0, keepdims=True)
+    id_avg_prob_matrix = id_sum_prob_matrix / float(num_of_ensemble)
+    id_pred_label_idx_array = np.argmax(id_avg_prob_matrix, axis=-1)
+    id_confidence_array = np.amax(id_avg_prob_matrix, axis=-1)
 
     # collect ood confidence scores
     ood_pred_logits_lst = []
@@ -37,7 +36,7 @@ def collect_ensemble_models_confidence_score(save_eval_dir, num_of_ensemble, con
 
     if confidence_strategy == "msp":
         ood_pred_prob_array = np.array([compute_softmax_np(logits_item) for logits_item in ood_pred_logits_lst])
-        ood_sum_prob_matrix = np.sum(ood_pred_prob_array, axis=0)
+        ood_sum_prob_matrix = np.sum(ood_pred_prob_array, axis=0, keepdims=True)
         ood_avg_prob_matrix = ood_sum_prob_matrix / float(num_of_ensemble)
         ood_confidence_array = np.amax(ood_avg_prob_matrix, axis=-1)
 

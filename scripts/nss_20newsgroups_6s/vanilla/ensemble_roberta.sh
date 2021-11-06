@@ -16,8 +16,8 @@ BERT_DIR=/data/lixiaoya/models/roberta-large
 DATA_DIR=/data/lixiaoya/datasets/kfolden/20news_6s
 
 TRAIN_BATCH_SIZE=18
-EVAL_BATCH_SIZE=12
-MAX_LENGTH=384
+EVAL_BATCH_SIZE=1
+MAX_LENGTH=394
 
 OPTIMIZER=torch.adam
 LR_SCHEDULE=linear

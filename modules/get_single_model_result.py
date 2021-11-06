@@ -19,21 +19,31 @@ def collect_single_model_confidence_score(save_eval_dir, confidence_strategy="ms
     id_logits_value = np.load(load_id_np_file)
 
     if confidence_strategy == "msp":
-        id_avg_prob_matrix = np.exp(id_logits_value) / np.sum(np.exp(id_logits_value), axis=-1)
+        id_avg_prob_matrix = np.exp(id_logits_value) / np.sum(np.exp(id_logits_value), axis=-1, keepdims=True)
         print(f"check the shape of prob matrix {id_avg_prob_matrix.shape}")
         id_pred_label_idx_array = np.argmax(id_avg_prob_matrix, axis=-1)
         id_confidence_array = np.amax(id_avg_prob_matrix, axis=-1)
     elif confidence_strategy == "temp_scaling":
         id_confidence_array, id_pred_label_idx_array, id_prob_array = get_confidence_via_temperature_scale(id_logits_value, temperature_value)
+    else:
+        id_avg_prob_matrix = np.exp(id_logits_value) / np.sum(np.exp(id_logits_value), axis=-1, keepdims=True)
+        print(f"check the shape of prob matrix {id_avg_prob_matrix.shape}")
+        id_pred_label_idx_array = np.argmax(id_avg_prob_matrix, axis=-1)
+        id_confidence_array = np.amax(id_avg_prob_matrix, axis=-1)
 
     load_ood_np_file = os.path.join(save_eval_dir, f"ood_logits.npy")
     ood_logits_value = np.load(load_ood_np_file)
     if confidence_strategy == "msp":
-        ood_avg_prob_matrix = np.exp(ood_logits_value) / np.sum(np.exp(ood_logits_value), axis=-1)
+        ood_avg_prob_matrix = np.exp(ood_logits_value) / np.sum(np.exp(ood_logits_value), axis=-1, keepdims=True)
         print(f"check the shape of prob matrix {ood_avg_prob_matrix.shape}")
         ood_confidence_array = np.amax(ood_avg_prob_matrix, axis=-1)
     elif confidence_strategy == "temp_scaling":
         ood_confidence_array, ood_pred_label_idx_array, ood_prob_array = get_confidence_via_temperature_scale(ood_logits_value, temperature_value)
+    else:
+        ood_avg_prob_matrix = np.exp(ood_logits_value) / np.sum(np.exp(ood_logits_value), axis=-1, keepdims=True)
+        print(f"check the shape of prob matrix {ood_avg_prob_matrix.shape}")
+        ood_confidence_array = np.amax(ood_avg_prob_matrix, axis=-1)
+
     return id_pred_label_idx_array, id_confidence_array, ood_confidence_array
 
 

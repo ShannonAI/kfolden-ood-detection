@@ -17,10 +17,10 @@ NUM_LEAVE_OUT_LABEL=1
 LAMBDA_LOSS=0.001
 
 BERT_DIR=/data/lixiaoya/models/roberta-large
-DATA_DIR=/data/lixiaoya/datasets/kfolden_ood_detection/agnews_ext
+DATA_DIR=/data/lixiaoya/datasets/kfolden/agnews_ext
 
 TRAIN_BATCH_SIZE=18
-EVAL_BATCH_SIZE=12
+EVAL_BATCH_SIZE=1
 MAX_LENGTH=384
 
 OPTIMIZER=torch.adam

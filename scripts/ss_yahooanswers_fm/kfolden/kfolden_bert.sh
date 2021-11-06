@@ -20,7 +20,7 @@ BERT_DIR=/data/lixiaoya/models/bert_cased_large
 DATA_DIR=/data/lixiaoya/datasets/kfolden/yahoo_answers_fm
 
 TRAIN_BATCH_SIZE=8
-EVAL_BATCH_SIZE=4
+EVAL_BATCH_SIZE=1
 MAX_LENGTH=384
 
 OPTIMIZER=torch.adam
