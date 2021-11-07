@@ -166,7 +166,7 @@ def main():
             collect_ensemble_models_pred_logits(args, tokenizer, full_id_label_lst, save_eval_dir, working_device, num_of_ensemble, dist_sign="ood")
             confidence_strategy_lst = set_confidence_strategy()
             for strategy_item in confidence_strategy_lst:
-                id_pred_label_idx_array, id_confidence_array, ood_confidence_array = collect_ensemble_models_confidence_score(save_eval_dir, confidence_strategy=strategy_item,
+                id_pred_label_idx_array, id_confidence_array, ood_confidence_array = collect_ensemble_models_confidence_score(save_eval_dir, num_of_ensemble, confidence_strategy=strategy_item,
                                                                                                                               temperature_value=args.temperature_value)
                 id_acc, fpr_value, auroc_value, id_aupr_value, ood_aupr_value, mini_ood_error = evaluate_performances(id_pred_label_idx_array, full_label_idx_lst, id_confidence_array,
                                                                                                                       ood_confidence_array, full_id_label_lst)
